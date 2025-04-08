@@ -1,8 +1,0 @@
-HTTP/1.1 200 OK
-Date: Sat, 05 Apr 2025 08:52:25 GMT
-Content-Type: text/html; charset=utf-8
-Content-Length: 7
-Connection: close
-Set-Cookie: tgw_l7_route=68e0527f14d336571fc04929182661c7; Expires=Sat, 05-Apr-2025 09:22:25 GMT; Path=/; sameSite=Lax
-
-Succes!
