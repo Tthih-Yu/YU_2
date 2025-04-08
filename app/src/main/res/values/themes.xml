@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <style name="Theme.YU" parent="Theme.MaterialComponents.Light.NoActionBar">
+        <item name="colorPrimary">@color/matcha_primary</item>
+        <item name="colorPrimaryVariant">@color/matcha_dark</item>
+        <item name="colorOnPrimary">@color/white</item>
+        <item name="colorSecondary">@color/matcha_accent</item>
+        <item name="colorSecondaryVariant">@color/matcha_accent</item>
+        <item name="colorOnSecondary">@color/black</item>
+        <item name="android:statusBarColor">@color/matcha_primary</item>
+        <item name="android:windowBackground">@color/matcha_background</item>
+        <item name="android:textColorPrimary">@color/matcha_text_primary</item>
+        <item name="android:textColorSecondary">@color/matcha_text_secondary</item>
+        
+        <!-- iOS风格元素 -->
+        <item name="materialButtonStyle">@style/Widget.App.Button</item>
+        <item name="materialCardViewStyle">@style/Widget.App.CardView</item>
+    </style>
+    
+    <!-- 无ActionBar且全屏的主题，用于启动页 -->
+    <style name="Theme.YU.NoActionBar">
+        <item name="windowActionBar">false</item>
+        <item name="windowNoTitle">true</item>
+        <item name="android:windowFullscreen">true</item>
+        <item name="android:windowBackground">@android:color/transparent</item>
+        <item name="android:statusBarColor">@android:color/transparent</item>
+    </style>
+    
+    <!-- iOS风格按钮 -->
+    <style name="Widget.App.Button" parent="Widget.MaterialComponents.Button">
+        <item name="android:textSize">16sp</item>
+        <item name="android:letterSpacing">0</item>
+        <item name="android:textAllCaps">false</item>
+        <item name="cornerRadius">10dp</item>
+    </style>
+    
+    <!-- iOS风格卡片 -->
+    <style name="Widget.App.CardView" parent="Widget.MaterialComponents.CardView">
+        <item name="cardCornerRadius">16dp</item>
+        <item name="cardElevation">0dp</item>
+        <item name="strokeWidth">0dp</item>
+    </style>
+</resources>

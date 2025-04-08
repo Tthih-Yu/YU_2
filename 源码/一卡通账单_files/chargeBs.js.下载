@@ -1,0 +1,68 @@
+define(function(require, exports, module) {
+	
+	var utils = require('utils');
+	
+    var bs = {
+        api: {
+        	getExplainUrl: 'api/getExplain.do',
+            saveExplainUrl: 'api/saveExplain.do'
+        },
+        
+        // 获取说明
+        getExplain: function(formData) {
+        	
+        	return this._commonSimpleAjax(this.api.getExplainUrl, formData);
+        	
+        },
+        
+        // 保存说明
+        saveExplain: function(formData) {
+        	
+        	return this._commonSimpleAjax(this.api.saveExplainUrl, formData);
+        	
+        },
+        
+        // 通用的ajax事件
+        _commonSimpleAjax: function(url, params){
+
+            var def = $.Deferred();
+            
+            utils.doAjax(url, params || {}).done(function(data) {
+            	
+                def.resolve(data);
+                
+            }).fail(function(res) {
+            	
+                def.reject(res);
+                
+            });
+            return def.promise();
+            
+        },
+        // 渲染编译器
+        renderUeditorContent: function() {
+        	
+       	 $("#editExplainForm").attr("id","CONTENT");
+           var scope = new Date().getTime() + "" + parseInt(Math.random()*100).toString();
+		    var token = scope + 1;
+	        editor1 =UE.getEditor('CONTENT',{
+	          serverUrl : window.contextPath + "/sys/emapcomponent/file/uploadTempFile/" + scope + "/" + token + ".do?storeId=image",
+	    	  toolbars: [[
+	    	              'source', '|', 'undo', 'redo', '|', 'bold', 'italic', 'underline', 'strikethrough', '|', 'superscript', 'subscript', '|', 'forecolor', 'backcolor', '|', 'removeformat', '|',
+	    	              'insertorderedlist', 'insertunorderedlist', '|', 
+	    	              'selectall', 'cleardoc', 'paragraph', '|', 'fontfamily', 'fontsize','|',
+	    	              'justifyleft', 'justifycenter', 'justifyright', 'justifyjustify', '|',
+	    	              'simpleupload', 'emotion', 'map', '|', 'link', 'unlink', '|',
+	    	              'horizontal', 'preview'
+	    	          ]],
+	          zIndex: 99999,
+	          initialFrameHeight:300
+          });
+	        editor1.ready(function() {
+		    	  editor1.setHeight(300);
+			  });
+	        return editor1;
+       }
+    };
+    return bs;
+});

@@ -1,0 +1,75 @@
+define(function(require, exports, module) {
+    var utils = require('utils');
+    var bs = require('./findBs');
+    var statementBS = require('../statementBs');
+    var viewConfig = {
+        
+        // 解挂
+        initFind: function(cardnum) {
+        	var title = '卡片解挂';
+        	var content = '<div id="findForm" style="overflow: hidden"></div>';
+        	var size =  {
+                    height: 260,
+                    width: 600
+                };
+        	
+        	// 打开弹窗
+        	BH_UTILS.bhWindow(content, title, null, size,function($dom){
+        		
+        		// 校验字段
+        		var valid = $('#findForm').emapValidate('validate');
+        		
+        		// 如果校验不通过则返回false
+                if (!valid) {
+                    return false;
+                }
+                
+                var formData = $('#findForm').emapForm('getValue');
+                
+                $.post(bs.api.unlockCardUrl, formData).done(function(resp) {
+                	
+                    if (resp && resp.code === '0') {
+                    	
+                    	$.bhTip({content: resp.msg, state: 'success'});
+                    	
+                    	$('.bh-menu-link-item:first').click();
+                    	
+                    } else {
+                    	
+                        BH_UTILS.bhDialogDanger({
+                        	title:resp.msg, 
+                        	content:' ',
+                        	buttons:[
+                    	             {
+                    	                 text:'确定',
+                    	                 callback:function(){
+                                             $("#statementYMSelect option:first").prop("selected", true);
+                    	                 }
+                    	             }
+                    	         ]
+                        });
+                        
+                    }
+                });
+            });
+
+        	// 获取数据模型
+        	var model = WIS_EMAP_SERV.getModel(bs.api.pageModel, bs.api.findFormAction, 'form');
+        	
+        	// 渲染表单
+        	$('#findForm').emapForm({
+        		data : model,
+        		readonly : false,
+        		mode : 'L',
+        		inputWidth : '9'
+        	});
+        		
+        	// 表单赋值
+        	$('#findForm [data-name=USER_ID]').text(window.USERID).data('value', window.USERID);
+        	$('#findForm [data-name=CARD_NO]').text(cardnum).data('value', cardnum);
+        	$('#findForm [data-name=CARD_PWD]').attr('type','password');
+        	
+        }
+    };
+    return viewConfig;
+});

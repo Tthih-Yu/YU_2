@@ -1,0 +1,17 @@
+define(function(require, exports, module) {
+    var bs = {
+        api: {
+            //saveorEditAppSettingUrl: 'busService/saveorEditAppSetting.do',
+            
+            // 页面模型
+            pageModel: 'modepage/find.do',
+    
+            // 解挂表单
+            findFormAction: 'cardLostForm',
+            
+            // 挂失Url
+            unlockCardUrl: 'api/unlockCard.do'
+        }
+    };
+    return bs;
+});

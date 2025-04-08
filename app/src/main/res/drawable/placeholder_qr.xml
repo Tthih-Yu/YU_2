@@ -1,0 +1,141 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="200"
+    android:viewportHeight="200">
+
+    <!-- 背景 -->
+    <path
+        android:fillColor="#F5F5F5"
+        android:pathData="M0,0h200v200h-200z" />
+
+    <!-- QR码边框元素 -->
+    <!-- 左上角定位标识 -->
+    <path
+        android:fillColor="#333333"
+        android:pathData="M20,20h30v30h-30z" />
+    <path
+        android:fillColor="#F5F5F5"
+        android:pathData="M25,25h20v20h-20z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M30,30h10v10h-10z" />
+
+    <!-- 右上角定位标识 -->
+    <path
+        android:fillColor="#333333"
+        android:pathData="M150,20h30v30h-30z" />
+    <path
+        android:fillColor="#F5F5F5"
+        android:pathData="M155,25h20v20h-20z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M160,30h10v10h-10z" />
+
+    <!-- 左下角定位标识 -->
+    <path
+        android:fillColor="#333333"
+        android:pathData="M20,150h30v30h-30z" />
+    <path
+        android:fillColor="#F5F5F5"
+        android:pathData="M25,155h20v20h-20z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M30,160h10v10h-10z" />
+
+    <!-- QR码内部的随机方块，模拟QR码的内容 -->
+    <path
+        android:fillColor="#333333"
+        android:pathData="M70,30h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M90,30h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M120,30h10v10h-10z" />
+    
+    <path
+        android:fillColor="#333333"
+        android:pathData="M50,50h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M70,50h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M100,50h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M130,50h10v10h-10z" />
+    
+    <path
+        android:fillColor="#333333"
+        android:pathData="M30,70h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M60,70h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M80,70h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M110,70h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M140,70h10v10h-10z" />
+    
+    <path
+        android:fillColor="#333333"
+        android:pathData="M50,90h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M70,90h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M90,90h20v20h-20z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M130,90h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M160,90h10v10h-10z" />
+    
+    <path
+        android:fillColor="#333333"
+        android:pathData="M40,110h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M130,110h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M150,110h10v10h-10z" />
+    
+    <path
+        android:fillColor="#333333"
+        android:pathData="M60,130h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M80,130h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M120,130h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M140,130h10v10h-10z" />
+    
+    <path
+        android:fillColor="#333333"
+        android:pathData="M70,150h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M90,150h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M110,150h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M150,150h10v10h-10z" />
+    <path
+        android:fillColor="#333333"
+        android:pathData="M170,150h10v10h-10z" />
+</vector> 

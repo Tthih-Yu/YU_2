@@ -1,0 +1,13 @@
+GET /favicon.ico HTTP/1.1
+Host: 220.178.164.65:8053
+Connection: keep-alive
+Pragma: no-cache
+Cache-Control: no-cache
+User-Agent: Mozilla/5.0 (Linux; Android 15; 23127PN0CC Build/AQ3A.240627.003; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/134.0.6998.135 Mobile Safari/537.36
+Accept: image/avif,image/webp,image/apng,image/svg+xml,image/*,*/*;q=0.8
+X-Requested-With: synjones.commerce
+Referer: http://220.178.164.65:8053/PPage/ComePage?flowID=150
+Accept-Encoding: gzip, deflate
+Accept-Language: zh-CN,zh;q=0.9,en-US;q=0.8,en;q=0.7
+Cookie: ASP.NET_SessionId=upbudk5irnxqqtiyfgdtr4hy; imeiticket=7b3672f7e9efc1603b65203bd471162c; sourcetypeticket=B5D45675CDAB44D2813AD9937F86DA59
+

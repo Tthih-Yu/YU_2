@@ -1,0 +1,194 @@
+define(function(require, exports, module) {
+    var utils = require('utils');
+    var bs = require('./lostBs');
+    var statementBS = require('../statementBs');
+    var viewConfig = {
+/*        initialize: function(html) {
+            var params = {};
+            this.initView(html, params);
+            this.eventMap = {
+                '#edit-explain': this.editExplain,
+                '#save-edit-content': this.saveEditContent,
+                '#cancel-edit-content': this.cancelEditContent
+            };
+        },
+        initView: function(html, params) {
+            var view = utils.loadCompiledPage('lostPage', require);
+            
+            $.post(bs.api.saveorEditAppSettingUrl, params).done(function(resp) {
+                if ("500" !== resp.code) {
+                    html.html(view.render(resp));
+                    var text = $('#explain-content').text();
+                    $('#explain-input').bhTxtInput({ limit: 500, textareaEasyCheck: true });
+                    var $textarea = $("#explain-input").find('textarea');
+                    if ('暂无任何说明~' === text) {
+                        // 说明没有说明内容
+                        $textarea.attr('placeholder', "请填写说明内容...");
+                    } else {
+                        $textarea.val(text);
+                    }
+                    $textarea.attr('maxlength', 500);
+                    WIS_EMAP_INPUT.placeHolder($('#explain-input textarea'));
+                    $('#explain-input').hide();
+                }
+            });
+        },
+        editExplain: function(event) {
+            var $tar = $(event.currentTarget);
+            $tar.slideUp('fast', function() {
+                var textHolder = '';
+                $('#btnHide').removeClass('bh-hide').slideDown('fast');
+                $('#explain-content').hide();
+                $('#explain-input').show();
+                $('.bh-txt-input__cur-len').text($('#explain-content').text().length);
+            });
+        },
+        saveCancelHandle: function(params) {
+            var self = this;
+            $("#explain-input").hide();
+            $('#btnHide').addClass('bh-hide').slideUp('fast', function() {
+                $.post(bs.api.saveorEditAppSettingUrl, params).done(function(resp) {
+                    if ("500" !== resp.code) {
+                        $('#explain-content').show();
+                        $('#explain-content').text(resp.BCXZ);
+                        $('#explain-content').attr('data-key', resp.WID);
+                        $('#edit-explain').show();
+                        $('#btnShow').show();
+                        $('.text-style').text(resp.BJSJ);
+                    } else {
+                        BH_UTILS.bhDialogDanger({
+                            title:resp.msg,
+                            content:' '
+                        });
+                    }
+                });
+            });
+        },
+        saveEditContent: function() {
+            var self = this;
+            var text = $("#explain-input").find('textarea').val();
+            if ('' === $.trim(text)) {
+                $.bhTip({content: "输入不能为空。", state: "danger"});
+                return;
+            }
+            
+            if ($.trim(text).length>500) {
+                $.bhTip({content: "内容长度超出。", state: "danger"});
+                return;
+            }
+            var params = {};
+            params['BCXZ'] = text;
+            var wid = $('#explain-content').attr('data-key');
+            if (undefined !== wid) {
+                params['WID'] = wid;
+            }
+            
+            BH_UTILS.bhDialogWarning({
+                title:'确定保存吗?',
+                content:' ',
+                buttons:[
+                    {
+                        text:'确定',
+                        callback:function(){
+                            self.saveCancelHandle(params);
+                        }
+                    },
+                    {
+                        text:'取消',
+                        callback:function(){
+                        }}]
+            });
+        },
+        cancelEditContent: function() {
+            var self = this;
+            var params = {};
+            var wid = $('#explain-content').attr('data-key');
+            if (undefined !== wid) {
+                params['WID'] = wid;
+            }
+            BH_UTILS.bhDialogWarning({
+                title:'确定取消编辑吗?',
+                content:' ',
+                buttons:[
+                    {
+                        text:'确定',
+                        callback:function(){
+                            self.saveCancelHandle(params);
+                        }
+                    },
+                    {
+                        text:'取消',
+                        callback:function(){
+                        }}]
+            });
+        },*/
+        
+        // 挂失
+        initLost: function(cardnum) {
+        	var title = '卡片挂失';
+        	var content = '<div id="lostForm" style="overflow: hidden"></div>';
+        	var size =  {
+                    height: 260,
+                    width: 600
+                };
+        	
+        	// 打开弹窗
+        	BH_UTILS.bhWindow(content, title, null, size,function($dom){
+        		
+        		// 校验字段
+        		var valid = $('#lostForm').emapValidate('validate');
+        		
+        		// 如果校验不通过则返回false
+                if (!valid) {
+                    return false;
+                }
+                
+                var formData = $('#lostForm').emapForm('getValue');
+                
+                $.post(bs.api.lockCardUrl, formData).done(function(resp) {
+                	
+                    if (resp && resp.code === '0') {
+                    	
+                    	$.bhTip({content: resp.msg, state: 'success'});
+                    	
+                    	$('.bh-menu-link-item:first').click();
+                    	
+                    } else {
+                    	
+                        BH_UTILS.bhDialogDanger({
+                        	title:resp.msg, 
+                        	content:' ',
+                        	buttons:[
+                    	             {
+                    	                 text:'确定',
+                    	                 callback:function(){
+                                             $("#statementYMSelect option:first").prop("selected", true);
+                    	                 }
+                    	             }
+                    	         ]
+                        });
+                        
+                    }
+                });
+            });
+
+        	// 获取数据模型
+        	var model = WIS_EMAP_SERV.getModel(bs.api.pageModel, bs.api.lostFormAction, 'form');
+
+        	// 渲染表单
+        	$('#lostForm').emapForm({
+        		data : model,
+        		readonly : false,
+        		mode : 'L',
+        		inputWidth : '9'
+        	});
+        		
+        	// 表单赋值
+        	$('#lostForm [data-name=USER_ID]').text(window.USERID).data('value', window.USERID);
+        	$('#lostForm [data-name=CARD_NO]').text(cardnum).data('value', cardnum);
+        	$('#lostForm [data-name=CARD_PWD]').attr('type','password');
+        	
+        }
+    };
+    return viewConfig;
+});

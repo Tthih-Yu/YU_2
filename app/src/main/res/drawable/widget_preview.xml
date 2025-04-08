@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="180dp"
+    android:height="110dp"
+    android:viewportWidth="180"
+    android:viewportHeight="110">
+    <!-- 渐变背景 -->
+    <path
+        android:fillColor="#2E55AA"
+        android:pathData="M0,0h180v110h-180z" />
+    <!-- 边框 -->
+    <path
+        android:strokeWidth="1"
+        android:pathData="M0,0h180v110h-180z"
+        android:strokeColor="#4DFFFFFF" />
+    <!-- 标题 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,20h80v12h-80z" />
+    <!-- 第一个数值标签 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,35h40v8h-40z" />
+    <!-- 第一个数值（大数字） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,45h40v20h-40z" />
+    <!-- 分隔线 -->
+    <path
+        android:fillColor="#4DFFFFFF"
+        android:pathData="M20,70h140v1h-140z" />
+    <!-- 第二个数值标签 -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,75h40v8h-40z" />
+    <!-- 第二个数值（大数字） -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M20,85h40v20h-40z" />
+</vector> 

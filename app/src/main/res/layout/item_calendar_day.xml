@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:id="@+id/day_cell"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="vertical"
+    android:padding="4dp"
+    android:gravity="center"
+    android:background="@drawable/calendar_day_background">
+
+    <TextView
+        android:id="@+id/tv_day"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="14sp"
+        android:textColor="@color/matcha_text_primary"
+        android:textStyle="bold"
+        tools:text="15" />
+
+    <TextView
+        android:id="@+id/tv_balance_change"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="10sp"
+        android:textColor="@color/matcha_text_secondary"
+        android:layout_marginTop="2dp"
+        tools:text="-2.34" />
+
+</LinearLayout> 

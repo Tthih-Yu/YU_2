@@ -1,0 +1,118 @@
+(function () {
+
+    var URL = window.UEDITOR_HOME_URL || getUEBasePath();
+    var agent = navigator.userAgent.toLowerCase();
+     //判断是否ie浏览器
+    var isIE=/(msie\s|trident.*rv:)([\w.]+)/.test(agent);
+    if(isIE && URL.indexOf("ueditor")>0){
+       URL = URL.substring(0,URL.indexOf("ueditor"))+"ueditor/";
+    }
+
+
+    window.UEDITOR_CONFIG = {
+        elementPathEnabled : false,
+        //为编辑器实例添加一个路径，这个不能被注释
+        UEDITOR_HOME_URL: URL
+
+        // 服务器统一请求接口路径
+        , serverUrl: URL + "attachmentUpload.portal?type=bulletinAttachment&ownerId=''"
+
+        //工具栏上的所有的功能按钮和下拉框，可以在new编辑器的实例时选择自己需要的从新定义
+        , toolbars: [[
+            'fullscreen', 'source', '|', 'undo', 'redo', '|',
+            'bold', 'italic', 'underline', 'fontborder', 'strikethrough', 'superscript', 'subscript', 'removeformat', 'formatmatch', 'autotypeset', 'blockquote', 'pasteplain', '|', 'forecolor', 'backcolor', 'insertorderedlist', 'insertunorderedlist', 'selectall', 'cleardoc', '|',
+            'rowspacingtop', 'rowspacingbottom', 'lineheight', '|',
+            'customstyle', 'paragraph', 'fontfamily', 'fontsize', '|',
+            'directionalityltr', 'directionalityrtl', 'indent', '|',
+            'justifyleft', 'justifycenter', 'justifyright', 'justifyjustify', '|', 'touppercase', 'tolowercase', '|',
+            'link', 'unlink', 'anchor', '|', 'imagenone', 'imageleft', 'imageright', 'imagecenter', '|',
+            'insertimage', 'pagebreak',  '|',
+            'horizontal', 'date', 'time', 'spechars', 'wordimage', '|',
+            'inserttable', 'deletetable', 'insertparagraphbeforetable', 'insertrow', 'deleterow', 'insertcol', 'deletecol', 'mergecells', 'mergeright', 'mergedown', 'splittocells', 'splittorows', 'splittocols', 'charts', '|',
+            'print', 'preview', 'searchreplace', 'help', 'drafts'
+        ]],
+        //图片上传
+        'imageActionName' : 'uploadimage', /* 执行上传图片的action名称 */
+        "imageFieldName": "upfile", /* 提交的图片表单名称 */
+        "imageMaxSize": 2048000, /* 上传大小限制，单位B */
+        "imageAllowFiles": [".png", ".jpg", ".jpeg", ".gif", ".bmp"], /* 上传图片格式显示 */
+        "imageCompressEnable": true, /* 是否压缩图片,默认是true */
+        "imageCompressBorder": 1600, /* 图片压缩最长边限制 */
+        "imageInsertAlign": "none", /* 插入的图片浮动方式 */
+        "imageUrlPrefix": "", /* 图片访问路径前缀 */
+        "imagePathFormat": "",
+
+        //其他的初始化配置
+        "autoHeightEnabled":true,
+        "scaleEnabled":false,
+        "autoFloatEnabled":false,
+        "initialFrameWidth":800 ,
+        "initialFrameHeight":520
+    };
+
+    function getUEBasePath(docUrl, confUrl) {
+
+        return getBasePath(docUrl || self.document.URL || self.location.href, confUrl || getConfigFilePath());
+
+    }
+
+    function getConfigFilePath() {
+
+        var configPath = document.getElementsByTagName('script');
+
+        return configPath[ configPath.length - 1 ].src;
+
+    }
+
+    function getBasePath(docUrl, confUrl) {
+
+        var basePath = confUrl;
+
+
+        if (/^(\/|\\\\)/.test(confUrl)) {
+
+            basePath = /^.+?\w(\/|\\\\)/.exec(docUrl)[0] + confUrl.replace(/^(\/|\\\\)/, '');
+
+        } else if (!/^[a-z]+:/i.test(confUrl)) {
+
+            docUrl = docUrl.split("#")[0].split("?")[0].replace(/[^\\\/]+$/, '');
+
+            basePath = docUrl + "" + confUrl;
+
+        }
+
+        return optimizationPath(basePath);
+
+    }
+
+    function optimizationPath(path) {
+
+        var protocol = /^[a-z]+:\/\//.exec(path)[ 0 ],
+            tmp = null,
+            res = [];
+
+        path = path.replace(protocol, "").split("?")[0].split("#")[0];
+
+        path = path.replace(/\\/g, '/').split(/\//);
+
+        path[ path.length - 1 ] = "";
+
+        while (path.length) {
+
+            if (( tmp = path.shift() ) === "..") {
+                res.pop();
+            } else if (tmp !== ".") {
+                res.push(tmp);
+            }
+
+        }
+
+        return protocol + res.join("/");
+
+    }
+
+    window.UE = {
+        getUEBasePath: getUEBasePath
+    };
+
+})();

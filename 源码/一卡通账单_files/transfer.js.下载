@@ -1,0 +1,126 @@
+define(function(require, exports, module) {
+    var utils = require('utils');
+    var bs = require('./transferBs');
+    var viewConfig = {
+        initialize: function(html) {
+            var params = {};
+            this.initView(html, params);
+            this.eventMap = {
+                '#edit-explain': this.editExplain,
+                '#save-edit-content': this.saveEditContent,
+                '#cancel-edit-content': this.cancelEditContent
+            };
+        },
+        initView: function(html, params) {
+            var appSettingView = utils.loadCompiledPage('appSettingIndexPage', require);
+            
+            $.post(bs.api.saveorEditAppSettingUrl, params).done(function(resp) {
+                if ("500" !== resp.code) {
+                    html.html(appSettingView.render(resp));
+                    var text = $('#explain-content').text();
+                    $('#explain-input').bhTxtInput({ limit: 500, textareaEasyCheck: true });
+                    var $textarea = $("#explain-input").find('textarea');
+                    if ('暂无任何说明~' === text) {
+                        // 说明没有说明内容
+                        $textarea.attr('placeholder', "请填写说明内容...");
+                    } else {
+                        $textarea.val(text);
+                    }
+                    $textarea.attr('maxlength', 500);
+                    WIS_EMAP_INPUT.placeHolder($('#explain-input textarea'));
+                    $('#explain-input').hide();
+                }
+            });
+        },
+        editExplain: function(event) {
+            var $tar = $(event.currentTarget);
+            $tar.slideUp('fast', function() {
+                var textHolder = '';
+                $('#btnHide').removeClass('bh-hide').slideDown('fast');
+                $('#explain-content').hide();
+                $('#explain-input').show();
+                $('.bh-txt-input__cur-len').text($('#explain-content').text().length);
+            });
+        },
+        saveCancelHandle: function(params) {
+            var self = this;
+            $("#explain-input").hide();
+            $('#btnHide').addClass('bh-hide').slideUp('fast', function() {
+                $.post(bs.api.saveorEditAppSettingUrl, params).done(function(resp) {
+                    if ("500" !== resp.code) {
+                        $('#explain-content').show();
+                        $('#explain-content').text(resp.BCXZ);
+                        $('#explain-content').attr('data-key', resp.WID);
+                        $('#edit-explain').show();
+                        $('#btnShow').show();
+                        $('.text-style').text(resp.BJSJ);
+                    } else {
+                        BH_UTILS.bhDialogDanger({
+                            title:resp.msg,
+                            content:' '
+                        });
+                    }
+                });
+            });
+        },
+        saveEditContent: function() {
+            var self = this;
+            var text = $("#explain-input").find('textarea').val();
+            if ('' === $.trim(text)) {
+                $.bhTip({content: "输入不能为空。", state: "danger"});
+                return;
+            }
+            
+            if ($.trim(text).length>500) {
+                $.bhTip({content: "内容长度超出。", state: "danger"});
+                return;
+            }
+            var params = {};
+            params['BCXZ'] = text;
+            var wid = $('#explain-content').attr('data-key');
+            if (undefined !== wid) {
+                params['WID'] = wid;
+            }
+            
+            BH_UTILS.bhDialogWarning({
+                title:'确定保存吗?',
+                content:' ',
+                buttons:[
+                    {
+                        text:'确定',
+                        callback:function(){
+                            self.saveCancelHandle(params);
+                        }
+                    },
+                    {
+                        text:'取消',
+                        callback:function(){
+                        }}]
+            });
+        },
+        cancelEditContent: function() {
+            var self = this;
+            var params = {};
+            var wid = $('#explain-content').attr('data-key');
+            if (undefined !== wid) {
+                params['WID'] = wid;
+            }
+            BH_UTILS.bhDialogWarning({
+                title:'确定取消编辑吗?',
+                content:' ',
+                buttons:[
+                    {
+                        text:'确定',
+                        callback:function(){
+                            self.saveCancelHandle(params);
+                        }
+                    },
+                    {
+                        text:'取消',
+                        callback:function(){
+                        }}]
+            });
+        }
+    };
+    return viewConfig;
+});

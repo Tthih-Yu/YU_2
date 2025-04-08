@@ -1,0 +1,37 @@
+<resources>
+    <string name="app_name">YU</string>
+    <string name="electricity_history">电费历史</string>
+    <string name="previous_month">上个月</string>
+    <string name="next_month">下个月</string>
+    <string name="sunday">日</string>
+    <string name="monday">一</string>
+    <string name="tuesday">二</string>
+    <string name="wednesday">三</string>
+    <string name="thursday">四</string>
+    <string name="friday">五</string>
+    <string name="saturday">六</string>
+    <string name="recharge_day">充值日</string>
+    <string name="high_usage_day">高用电日</string>
+    <string name="monthly_summary">月度摘要</string>
+    <string name="monthly_usage">本月用电</string>
+    <string name="monthly_recharge">本月充值</string>
+    <string name="back">返回</string>
+    <string name="electricity_widget_description">显示宿舍剩余电量和预计可用天数</string>
+    <string name="widget_description">显示宿舍电费余额和预计剩余天数</string>
+    
+    <!-- 关于页面 -->
+    <string name="about">关于</string>
+    <string name="app_full_name">YU校园助手</string>
+    <string name="check_update">检查更新</string>
+    <string name="join_telegram">加入Telegram群组</string>
+    <string name="join_qq">加入QQ群组</string>
+    <string name="contact_email">通过邮件联系我</string>
+    <string name="wechat_official">微信公众号</string>
+    <string name="help_us">帮助我们</string>
+    <string name="help_translate">协助翻译</string>
+    <string name="terms_of_service">使用协议</string>
+    <string name="privacy_policy">隐私政策</string>
+    <string name="open_source_licenses">开源许可</string>
+    <string name="icp_number">备案号: ABCDEF20239616E-3A</string>
+    <string name="copyright">安徽工程大学 © 2023</string>
+</resources>

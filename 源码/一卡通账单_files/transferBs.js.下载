@@ -1,0 +1,8 @@
+define(function(require, exports, module) {
+    var bs = {
+        api: {
+            saveorEditAppSettingUrl: 'busService/saveorEditAppSetting.do'
+        }
+    };
+    return bs;
+});

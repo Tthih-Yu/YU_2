@@ -1,0 +1,280 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/widget_container"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:background="@drawable/widget_gradient_background">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginBottom="8dp">
+        
+        <TextView
+            android:id="@+id/widget_title"
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:text="宿舍电费"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold"
+            android:shadowColor="#80000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="3" />
+            
+        <ImageButton
+            android:id="@+id/btn_refresh"
+            android:layout_width="28dp"
+            android:layout_height="28dp"
+            android:background="?android:attr/selectableItemBackgroundBorderless"
+            android:src="@drawable/ic_refresh"
+            android:contentDescription="刷新电费数据"
+            android:padding="2dp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/electricity_amount_label"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="剩余电量"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:alpha="0.9"
+        android:shadowColor="#80000000"
+        android:shadowDx="1"
+        android:shadowDy="1"
+        android:shadowRadius="2" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="6dp">
+        
+        <TextView
+            android:id="@+id/electricity_amount"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--"
+            android:textColor="#FFFFFF"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:shadowColor="#80000000"
+            android:shadowDx="2"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
+        
+        <TextView
+            android:id="@+id/electricity_unit"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" 元"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="6dp"
+            android:shadowColor="#80000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2" />
+    </LinearLayout>
+
+    <!-- 使用FrameLayout代替View作为分隔线 -->
+    <FrameLayout
+        android:id="@+id/divider"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="2dp"
+        android:layout_marginBottom="6dp"
+        android:background="#4DFFFFFF" />
+
+    <!-- 日均用电量部分 -->
+    <LinearLayout
+        android:id="@+id/daily_usage_container"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:visibility="visible">
+        
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            
+            <TextView
+                android:id="@+id/daily_usage_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="日均用电"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:alpha="0.9"
+                android:shadowColor="#80000000"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="1" />
+                
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                
+                <TextView
+                    android:id="@+id/daily_usage"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--"
+                    android:textColor="#DDFFFFFF"
+                    android:textSize="18sp"
+                    android:shadowColor="#80000000"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2" />
+                    
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" 元/天"
+                    android:textColor="#DDFFFFFF"
+                    android:textSize="12sp"
+                    android:layout_gravity="bottom"
+                    android:shadowColor="#80000000"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="1" />
+            </LinearLayout>
+        </LinearLayout>
+        
+        <LinearLayout
+            android:layout_width="0dp"
+            android:layout_weight="1"
+            android:layout_height="wrap_content"
+            android:orientation="vertical">
+            
+            <TextView
+                android:id="@+id/remaining_days_label"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="预计剩余"
+                android:textColor="#FFFFFF"
+                android:textSize="12sp"
+                android:alpha="0.9"
+                android:shadowColor="#80000000"
+                android:shadowDx="1"
+                android:shadowDy="1"
+                android:shadowRadius="1" />
+                
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:orientation="horizontal"
+                android:gravity="center_vertical">
+                
+                <TextView
+                    android:id="@+id/remaining_days"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="--"
+                    android:textColor="#FFFFFF"
+                    android:textSize="18sp"
+                    android:textStyle="bold"
+                    android:shadowColor="#80000000"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="2" />
+                    
+                <TextView
+                    android:id="@+id/days_unit"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text=" 天"
+                    android:textColor="#FFFFFF"
+                    android:textSize="12sp"
+                    android:layout_gravity="bottom"
+                    android:shadowColor="#80000000"
+                    android:shadowDx="1"
+                    android:shadowDy="1"
+                    android:shadowRadius="1" />
+            </LinearLayout>
+        </LinearLayout>
+    </LinearLayout>
+
+    <!-- 使用FrameLayout代替View作为分隔线 -->
+    <FrameLayout
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginTop="6dp"
+        android:layout_marginBottom="6dp"
+        android:background="#4DFFFFFF" />
+
+    <!-- 预计剩余天数部分 - 大数字显示 -->
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="预计剩余天数"
+        android:textColor="#FFFFFF"
+        android:textSize="14sp"
+        android:alpha="0.9"
+        android:shadowColor="#80000000"
+        android:shadowDx="1"
+        android:shadowDy="1"
+        android:shadowRadius="2" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:layout_marginTop="2dp">
+        
+        <TextView
+            android:id="@+id/remaining_days_large"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="--"
+            android:textColor="#FFFFFF"
+            android:textSize="36sp"
+            android:textStyle="bold"
+            android:shadowColor="#80000000"
+            android:shadowDx="2"
+            android:shadowDy="2"
+            android:shadowRadius="4" />
+        
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text=" 天"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:layout_gravity="bottom"
+            android:layout_marginBottom="6dp"
+            android:shadowColor="#80000000"
+            android:shadowDx="1"
+            android:shadowDy="1"
+            android:shadowRadius="2" />
+    </LinearLayout>
+
+    <!-- 最后更新时间 -->
+    <TextView
+        android:id="@+id/last_update_time"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="更新: --"
+        android:textColor="#DDFFFFFF"
+        android:textSize="12sp"
+        android:layout_marginTop="6dp"
+        android:shadowColor="#40000000"
+        android:shadowDx="1"
+        android:shadowDy="1"
+        android:shadowRadius="1" />
+
+</LinearLayout> 

@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#8BC34A</color>
+    <color name="colorPrimaryDark">#689F38</color>
+    <color name="colorAccent">#8BC34A</color>
+    
+    <!-- 应用主色调 -->
+    <color name="purple_200">#FFBB86FC</color>
+    <color name="purple_500">#FF6200EE</color>
+    <color name="purple_700">#FF3700B3</color>
+    <color name="teal_200">#FF03DAC5</color>
+    <color name="teal_700">#FF018786</color>
+    <color name="black">#FF000000</color>
+    <color name="white">#FFFFFFFF</color>
+    
+    <!-- 抹茶绿主题 -->
+    <color name="matcha_primary">#8BC34A</color>
+    <color name="matcha_light">#C5E1A5</color>
+    <color name="matcha_very_light">#F1F8E9</color>
+    <color name="matcha_dark">#689F38</color>
+    <color name="matcha_background">#F2F6EC</color>
+    <color name="matcha_card_background">#FFFFFF</color>
+    <color name="matcha_text_primary">#2E3D2B</color>
+    <color name="matcha_text_secondary">#6D7769</color>
+    <color name="matcha_text_hint">#9AA097</color>
+    <color name="matcha_divider">#E8F0E0</color>
+    <color name="matcha_accent">#FFDE59</color>
+    <color name="matcha_warning">#FF9500</color>
+    <color name="matcha_danger">#F44336</color>
+    <color name="matcha_success">#4CAF50</color>
+    
+    <!-- 用电统计颜色 -->
+    <color name="danger_red">#F44336</color>
+    <color name="warning_yellow">#FFC107</color>
+    <color name="safe_green">#4CAF50</color>
+    <color name="usage_increasing">#F44336</color>
+    <color name="usage_decreasing">#4CAF50</color>
+    <color name="usage_stable">#3F51B5</color>
+</resources>
