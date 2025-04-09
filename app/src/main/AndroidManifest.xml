@@ -89,6 +89,12 @@
             android:parentActivityName=".AboutActivity" />
             
         <activity
+            android:name=".about.AppIntroActivity"
+            android:label="应用介绍"
+            android:theme="@style/Theme.YU"
+            android:parentActivityName=".AboutActivity" />
+            
+        <activity
             android:name=".about.EmailContactActivity"
             android:label="邮件联系"
             android:theme="@style/Theme.YU"

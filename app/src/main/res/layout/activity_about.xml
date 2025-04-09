@@ -93,6 +93,40 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
+            <!-- 应用介绍 -->
+            <androidx.cardview.widget.CardView
+                android:id="@+id/card_app_intro"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginTop="8dp"
+                android:clickable="true"
+                android:foreground="?android:attr/selectableItemBackground"
+                app:cardCornerRadius="8dp"
+                app:cardElevation="1dp"
+                android:focusable="true">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="horizontal"
+                    android:padding="16dp">
+
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_height="wrap_content"
+                        android:layout_weight="1"
+                        android:text="@string/app_intro"
+                        android:textColor="@android:color/black"
+                        android:textSize="16sp" />
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:contentDescription="应用介绍"
+                        android:src="@drawable/ic_arrow_right" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
             <!-- Telegram群组 -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_telegram"

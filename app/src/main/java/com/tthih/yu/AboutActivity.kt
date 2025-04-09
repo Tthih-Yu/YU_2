@@ -21,6 +21,7 @@ import com.tthih.yu.about.TelegramGroupActivity
 import com.tthih.yu.about.TermsActivity
 import com.tthih.yu.about.TranslationHelpActivity
 import com.tthih.yu.about.WechatOfficialActivity
+import com.tthih.yu.about.AppIntroActivity
 
 class AboutActivity : AppCompatActivity() {
 
@@ -50,6 +51,13 @@ class AboutActivity : AppCompatActivity() {
         val checkUpdateCard = findViewById<CardView>(R.id.card_check_update)
         checkUpdateCard.setOnClickListener {
             val intent = Intent(this, CheckUpdateActivity::class.java)
+            startActivity(intent)
+        }
+
+        // 设置应用介绍按钮点击事件
+        val appIntroCard = findViewById<CardView>(R.id.card_app_intro)
+        appIntroCard.setOnClickListener {
+            val intent = Intent(this, AppIntroActivity::class.java)
             startActivity(intent)
         }
 
