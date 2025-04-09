@@ -29,10 +29,15 @@
     <string name="contact_email">通过邮件联系我</string>
     <string name="wechat_official">微信公众号</string>
     <string name="help_us">帮助我们</string>
-    <string name="help_translate">协助翻译</string>
     <string name="terms_of_service">使用协议</string>
     <string name="privacy_policy">隐私政策</string>
     <string name="open_source_licenses">开源许可</string>
     <string name="icp_number">备案号: ABCDEF20239616E-3A</string>
     <string name="copyright">安徽工程大学 © 2023</string>
+    
+    <!-- 关于页面分组标题 -->
+    <string name="about_app_info">应用信息</string>
+    <string name="about_community">社区支持</string>
+    <string name="about_help_support">帮助与支持</string>
+    <string name="about_legal">法律信息</string>
 </resources>

@@ -137,12 +137,6 @@
             android:parentActivityName=".AboutActivity" />
             
         <activity
-            android:name=".about.TranslationHelpActivity"
-            android:label="翻译帮助"
-            android:theme="@style/Theme.YU"
-            android:parentActivityName=".AboutActivity" />
-            
-        <activity
             android:name=".about.DonateActivity"
             android:label="支持开发"
             android:theme="@style/Theme.YU"

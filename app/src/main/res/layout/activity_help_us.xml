@@ -92,55 +92,6 @@
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
-            <!-- 翻译卡片 -->
-            <androidx.cardview.widget.CardView
-                android:id="@+id/card_translation"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="16dp"
-                android:clickable="true"
-                android:focusable="true"
-                android:foreground="?android:attr/selectableItemBackground"
-                app:cardCornerRadius="8dp"
-                app:cardElevation="2dp">
-
-                <LinearLayout
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal"
-                    android:padding="16dp">
-
-                    <ImageView
-                        android:layout_width="48dp"
-                        android:layout_height="48dp"
-                        android:contentDescription="翻译"
-                        android:src="@drawable/ic_info" />
-
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginStart="16dp"
-                        android:orientation="vertical">
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:text="协助翻译"
-                            android:textColor="@android:color/black"
-                            android:textSize="18sp"
-                            android:textStyle="bold" />
-
-                        <TextView
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="4dp"
-                            android:text="帮助我们将应用翻译成更多语言"
-                            android:textColor="@android:color/darker_gray"
-                            android:textSize="14sp" />
-                    </LinearLayout>
-                </LinearLayout>
-            </androidx.cardview.widget.CardView>
-
             <!-- 分享卡片 -->
             <androidx.cardview.widget.CardView
                 android:id="@+id/card_share"

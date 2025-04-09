@@ -13,7 +13,6 @@ class HelpUsActivity : AppCompatActivity() {
     
     private lateinit var toolbar: Toolbar
     private lateinit var feedbackCard: CardView
-    private lateinit var translationCard: CardView
     private lateinit var shareCard: CardView
     private lateinit var donateCard: CardView
     private lateinit var rateButton: Button
@@ -38,7 +37,6 @@ class HelpUsActivity : AppCompatActivity() {
         
         // 初始化其他视图
         feedbackCard = findViewById(R.id.card_feedback)
-        translationCard = findViewById(R.id.card_translation)
         shareCard = findViewById(R.id.card_share)
         donateCard = findViewById(R.id.card_donate)
         rateButton = findViewById(R.id.btn_rate)
@@ -49,13 +47,6 @@ class HelpUsActivity : AppCompatActivity() {
         feedbackCard.setOnClickListener {
             // 跳转到邮件联系页面
             val intent = Intent(this, EmailContactActivity::class.java)
-            startActivity(intent)
-        }
-        
-        // 翻译卡片点击事件
-        translationCard.setOnClickListener {
-            // 跳转到翻译帮助页面
-            val intent = Intent(this, TranslationHelpActivity::class.java)
             startActivity(intent)
         }
         
