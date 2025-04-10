@@ -18,7 +18,6 @@ import com.tthih.yu.about.HelpUsActivity
 import com.tthih.yu.about.OpenSourceLicenseActivity
 import com.tthih.yu.about.PrivacyPolicyActivity
 import com.tthih.yu.about.QQGroupActivity
-import com.tthih.yu.about.TelegramGroupActivity
 import com.tthih.yu.about.TermsActivity
 import com.tthih.yu.about.WechatOfficialActivity
 import com.tthih.yu.about.AppIntroActivity
@@ -58,13 +57,6 @@ class AboutActivity : AppCompatActivity() {
         val appIntroCard = findViewById<LinearLayout>(R.id.card_app_intro)
         appIntroCard.setOnClickListener {
             val intent = Intent(this, AppIntroActivity::class.java)
-            startActivity(intent)
-        }
-
-        // 设置Telegram群组点击事件
-        val telegramCard = findViewById<LinearLayout>(R.id.card_telegram)
-        telegramCard.setOnClickListener {
-            val intent = Intent(this, TelegramGroupActivity::class.java)
             startActivity(intent)
         }
 

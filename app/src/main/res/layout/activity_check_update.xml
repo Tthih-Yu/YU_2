@@ -4,7 +4,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:background="@android:color/white"
+    android:background="#F8F8F8"
     tools:context=".about.CheckUpdateActivity">
 
     <androidx.appcompat.widget.Toolbar
@@ -26,40 +26,83 @@
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
             android:layout_marginBottom="16dp"
-            app:cardCornerRadius="8dp"
+            app:cardCornerRadius="12dp"
             app:cardElevation="2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="20dp">
 
-                <TextView
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginBottom="16dp"
-                    android:text="版本信息"
-                    android:textColor="@android:color/black"
-                    android:textSize="18sp"
-                    android:textStyle="bold" />
+                    android:orientation="horizontal"
+                    android:gravity="center_vertical"
+                    android:layout_marginBottom="16dp">
+                    
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:contentDescription="版本"
+                        android:src="@mipmap/ic_launcher"
+                        android:layout_marginEnd="16dp"/>
+                    
+                    <TextView
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="版本信息"
+                        android:textColor="@android:color/black"
+                        android:textSize="20sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tv_current_version"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="当前版本: 1.0.0"
-                    android:textColor="@android:color/black"
-                    android:textSize="16sp" />
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="12dp">
+                    
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="当前版本"
+                        android:textColor="#757575"
+                        android:textSize="16sp" />
+                    
+                    <TextView
+                        android:id="@+id/tv_current_version"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="1.0.0"
+                        android:textColor="#FF8C00"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+                </LinearLayout>
 
-                <TextView
-                    android:id="@+id/tv_last_checked"
+                <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:layout_marginTop="8dp"
-                    android:text="上次检查: 未检查"
-                    android:textColor="@android:color/darker_gray"
-                    android:textSize="14sp" />
+                    android:orientation="horizontal">
+                    
+                    <TextView
+                        android:layout_width="0dp"
+                        android:layout_weight="1"
+                        android:layout_height="wrap_content"
+                        android:text="上次检查"
+                        android:textColor="#757575"
+                        android:textSize="16sp" />
+                    
+                    <TextView
+                        android:id="@+id/tv_last_checked"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="未检查"
+                        android:textColor="#757575"
+                        android:textSize="16sp" />
+                </LinearLayout>
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
@@ -67,14 +110,14 @@
         <androidx.cardview.widget.CardView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            app:cardCornerRadius="8dp"
+            app:cardCornerRadius="12dp"
             app:cardElevation="2dp">
 
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:orientation="vertical"
-                android:padding="16dp">
+                android:padding="20dp">
 
                 <LinearLayout
                     android:layout_width="match_parent"
@@ -82,6 +125,16 @@
                     android:layout_marginBottom="16dp"
                     android:gravity="center_vertical"
                     android:orientation="horizontal">
+                    
+                    <ImageView
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:contentDescription="更新"
+                        android:src="@drawable/ic_refresh"
+                        android:padding="8dp"
+                        android:tint="#2196F3"
+                        android:background="@android:color/white"
+                        android:layout_marginEnd="16dp"/>
 
                     <TextView
                         android:layout_width="0dp"
@@ -89,13 +142,14 @@
                         android:layout_weight="1"
                         android:text="检查更新"
                         android:textColor="@android:color/black"
-                        android:textSize="18sp"
+                        android:textSize="20sp"
                         android:textStyle="bold" />
 
                     <ImageView
                         android:id="@+id/iv_refresh"
-                        android:layout_width="24dp"
-                        android:layout_height="24dp"
+                        android:layout_width="40dp"
+                        android:layout_height="40dp"
+                        android:padding="8dp"
                         android:background="?attr/selectableItemBackgroundBorderless"
                         android:contentDescription="刷新"
                         android:src="@drawable/ic_refresh"
@@ -115,18 +169,21 @@
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:layout_marginTop="8dp"
-                    android:text="点击刷新图标检查更新"
-                    android:textColor="@android:color/black"
+                    android:layout_marginBottom="16dp"
+                    android:text="点击右上角刷新图标检查更新"
+                    android:textColor="#424242"
                     android:textSize="16sp" />
 
-                <Button
+                <com.google.android.material.button.MaterialButton
                     android:id="@+id/btn_update"
                     android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:layout_marginTop="16dp"
-                    android:background="#2196F3"
+                    android:layout_height="56dp"
+                    android:layout_marginTop="8dp"
                     android:text="立即更新"
                     android:textColor="@android:color/white"
+                    android:textSize="16sp"
+                    app:cornerRadius="28dp"
+                    android:backgroundTint="#2196F3"
                     android:visibility="gone" />
 
             </LinearLayout>
@@ -135,11 +192,20 @@
         <TextView
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="16dp"
+            android:layout_marginTop="24dp"
             android:gravity="center"
             android:text="建议定期检查更新以获取最新功能和修复"
-            android:textColor="@android:color/darker_gray"
+            android:textColor="#757575"
             android:textSize="14sp" />
+
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:layout_marginTop="8dp"
+            android:gravity="center"
+            android:text="YU校园助手 © 2023"
+            android:textColor="#9E9E9E"
+            android:textSize="12sp" />
 
     </LinearLayout>
 

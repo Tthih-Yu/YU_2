@@ -3,10 +3,13 @@ package com.tthih.yu.about
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
-import android.widget.Button
+import android.view.View
+import android.view.animation.AnimationUtils
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
 import androidx.cardview.widget.CardView
+import androidx.core.content.ContextCompat
+import com.google.android.material.button.MaterialButton
 import com.tthih.yu.R
 
 class HelpUsActivity : AppCompatActivity() {
@@ -15,7 +18,7 @@ class HelpUsActivity : AppCompatActivity() {
     private lateinit var feedbackCard: CardView
     private lateinit var shareCard: CardView
     private lateinit var donateCard: CardView
-    private lateinit var rateButton: Button
+    private lateinit var rateButton: MaterialButton
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,6 +29,9 @@ class HelpUsActivity : AppCompatActivity() {
         
         // 设置点击事件
         setupClickListeners()
+        
+        // 应用动画效果
+        applyAnimations()
     }
     
     private fun initViews() {
@@ -34,6 +40,9 @@ class HelpUsActivity : AppCompatActivity() {
         setSupportActionBar(toolbar)
         supportActionBar?.setDisplayHomeAsUpEnabled(true)
         supportActionBar?.title = "帮助我们"
+        
+        // 设置导航图标颜色为橙色
+        toolbar.navigationIcon?.setTint(ContextCompat.getColor(this, android.R.color.holo_orange_dark))
         
         // 初始化其他视图
         feedbackCard = findViewById(R.id.card_feedback)
@@ -45,6 +54,7 @@ class HelpUsActivity : AppCompatActivity() {
     private fun setupClickListeners() {
         // 反馈卡片点击事件
         feedbackCard.setOnClickListener {
+            animateCard(it)
             // 跳转到邮件联系页面
             val intent = Intent(this, EmailContactActivity::class.java)
             startActivity(intent)
@@ -52,11 +62,13 @@ class HelpUsActivity : AppCompatActivity() {
         
         // 分享卡片点击事件
         shareCard.setOnClickListener {
+            animateCard(it)
             shareApp()
         }
         
         // 捐赠卡片点击事件
         donateCard.setOnClickListener {
+            animateCard(it)
             // 跳转到捐赠页面
             val intent = Intent(this, DonateActivity::class.java)
             startActivity(intent)
@@ -64,8 +76,41 @@ class HelpUsActivity : AppCompatActivity() {
         
         // 评分按钮点击事件
         rateButton.setOnClickListener {
+            // 应用按钮动画
+            val buttonAnimation = AnimationUtils.loadAnimation(this, R.anim.btn_scale)
+            it.startAnimation(buttonAnimation)
+            
             rateApp()
         }
+    }
+    
+    private fun animateCard(view: View) {
+        val cardAnimation = AnimationUtils.loadAnimation(this, R.anim.btn_scale)
+        view.startAnimation(cardAnimation)
+    }
+    
+    private fun applyAnimations() {
+        // 获取卡片动画
+        val cardSlideUp = AnimationUtils.loadAnimation(this, R.anim.card_slide_up)
+        
+        // 应用延迟动画到每个卡片
+        feedbackCard.visibility = View.VISIBLE
+        feedbackCard.startAnimation(cardSlideUp)
+        
+        val shareCardAnim = AnimationUtils.loadAnimation(this, R.anim.card_slide_up)
+        shareCardAnim.startOffset = 150
+        shareCard.visibility = View.VISIBLE
+        shareCard.startAnimation(shareCardAnim)
+        
+        val donateCardAnim = AnimationUtils.loadAnimation(this, R.anim.card_slide_up)
+        donateCardAnim.startOffset = 300
+        donateCard.visibility = View.VISIBLE
+        donateCard.startAnimation(donateCardAnim)
+        
+        val buttonAnim = AnimationUtils.loadAnimation(this, R.anim.card_slide_up)
+        buttonAnim.startOffset = 450
+        rateButton.visibility = View.VISIBLE
+        rateButton.startAnimation(buttonAnim)
     }
     
     // 分享应用

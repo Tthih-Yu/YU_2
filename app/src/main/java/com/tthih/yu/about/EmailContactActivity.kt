@@ -1,12 +1,17 @@
 package com.tthih.yu.about
 
+import android.content.ClipData
+import android.content.ClipboardManager
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Bundle
 import android.widget.Button
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.appcompat.widget.Toolbar
+import com.google.android.material.button.MaterialButton
 import com.google.android.material.textfield.TextInputEditText
 import com.tthih.yu.R
 
@@ -15,10 +20,12 @@ class EmailContactActivity : AppCompatActivity() {
     private lateinit var toolbar: Toolbar
     private lateinit var subjectEditText: TextInputEditText
     private lateinit var messageEditText: TextInputEditText
-    private lateinit var sendButton: Button
+    private lateinit var sendButton: MaterialButton
+    private lateinit var emailAddressText: TextView
+    private lateinit var copyEmailButton: MaterialButton
     
     // 开发者邮箱，可根据实际情况修改
-    private val developerEmail = "2190638246@qq.com"
+    private val developerEmail = "developer@yucampus.app"
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -29,6 +36,9 @@ class EmailContactActivity : AppCompatActivity() {
         
         // 设置发送按钮点击事件
         setupSendButton()
+        
+        // 设置复制邮箱按钮点击事件
+        setupCopyEmailButton()
     }
     
     private fun initViews() {
@@ -42,6 +52,11 @@ class EmailContactActivity : AppCompatActivity() {
         subjectEditText = findViewById(R.id.et_subject)
         messageEditText = findViewById(R.id.et_message)
         sendButton = findViewById(R.id.btn_send)
+        emailAddressText = findViewById(R.id.tv_email_address)
+        copyEmailButton = findViewById(R.id.btn_copy_email)
+        
+        // 设置邮箱地址
+        emailAddressText.text = developerEmail
     }
     
     private fun setupSendButton() {
@@ -63,6 +78,20 @@ class EmailContactActivity : AppCompatActivity() {
             // 发送邮件
             sendEmail(subject, message)
         }
+    }
+    
+    private fun setupCopyEmailButton() {
+        copyEmailButton.setOnClickListener {
+            // 复制邮箱到剪贴板
+            copyToClipboard(developerEmail)
+            Toast.makeText(this, "邮箱地址已复制到剪贴板", Toast.LENGTH_SHORT).show()
+        }
+    }
+    
+    private fun copyToClipboard(text: String) {
+        val clipboardManager = getSystemService(Context.CLIPBOARD_SERVICE) as ClipboardManager
+        val clipData = ClipData.newPlainText("邮箱地址", text)
+        clipboardManager.setPrimaryClip(clipData)
     }
     
     private fun sendEmail(subject: String, message: String) {

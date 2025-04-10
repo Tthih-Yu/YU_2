@@ -125,12 +125,6 @@
             android:parentActivityName=".AboutActivity" />
             
         <activity
-            android:name=".about.TelegramGroupActivity"
-            android:label="Telegram群组"
-            android:theme="@style/Theme.YU"
-            android:parentActivityName=".AboutActivity" />
-            
-        <activity
             android:name=".about.TermsActivity"
             android:label="使用条款"
             android:theme="@style/Theme.YU"
@@ -141,6 +135,12 @@
             android:label="支持开发"
             android:theme="@style/Theme.YU"
             android:parentActivityName=".about.HelpUsActivity" />
+            
+        <activity
+            android:name=".about.WechatOfficialActivity"
+            android:label="微信公众号"
+            android:theme="@style/Theme.YU"
+            android:parentActivityName=".AboutActivity" />
             
         <!-- 电费小部件提供者 -->
         <receiver
