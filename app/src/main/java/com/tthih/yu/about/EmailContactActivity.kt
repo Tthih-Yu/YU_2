@@ -25,7 +25,7 @@ class EmailContactActivity : AppCompatActivity() {
     private lateinit var copyEmailButton: MaterialButton
     
     // 开发者邮箱，可根据实际情况修改
-    private val developerEmail = "developer@yucampus.app"
+    private val developerEmail = "2190638246@qq.com"
     
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
