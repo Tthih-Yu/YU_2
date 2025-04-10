@@ -15,6 +15,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.google.android.material.floatingactionbutton.FloatingActionButton
 import com.tthih.yu.R
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Date
 import java.util.Locale
 import java.util.concurrent.TimeUnit
@@ -199,13 +200,22 @@ class ElectricityActivity : AppCompatActivity() {
         
         // 更新用电统计 - 即使为0也显示估计值
         if (data.dailyUsage > 0) {
+            // 根据用电量大小设置不同的颜色
+            val colorResId = when {
+                data.dailyUsage > 3.0f -> R.color.usage_increasing  // 用电量偏高
+                data.dailyUsage < 1.5f -> R.color.usage_decreasing  // 用电量偏低
+                else -> R.color.usage_stable  // 用电量适中
+            }
+            tvDailyUsage.setTextColor(getColor(colorResId))
             tvDailyUsage.text = String.format("%.2f 元/天", data.dailyUsage)
-        } else if (data.balance > 0) {
-            // 如果有余额但没有计算出用电量，显示估计值
-            tvDailyUsage.text = "约 2.5 元/天 (估计值)"
-            tvDailyUsage.setTextColor(getColor(R.color.warning_yellow))
+            
+            // 添加每月预计用电量的信息
+            val monthlyUsage = data.dailyUsage * 30
+            tvDailyUsage.append(" (约 ${String.format("%.0f", monthlyUsage)} 元/月)")
         } else {
-            tvDailyUsage.text = "未知"
+            // 使用默认估计值时显示更清晰的信息
+            tvDailyUsage.text = "无历史数据，使用季节性估计值"
+            tvDailyUsage.setTextColor(getColor(R.color.warning_yellow))
         }
         
         // 更新用电趋势
@@ -228,47 +238,76 @@ class ElectricityActivity : AppCompatActivity() {
                     ElectricityViewModel.UsageTrend.STABLE -> getColor(R.color.usage_stable)
                 }
                 tvUsageTrend.setTextColor(color)
+                
+                // 添加提示信息
+                if (trend == ElectricityViewModel.UsageTrend.INCREASING && percentage > 20) {
+                    tvSuggestion.visibility = View.VISIBLE
+                    tvSuggestion.text = "近期用电量增长较快，注意节约用电"
+                } else if (trend == ElectricityViewModel.UsageTrend.DECREASING && percentage > 20) {
+                    tvSuggestion.visibility = View.VISIBLE
+                    tvSuggestion.text = "近期用电量明显减少，继续保持"
+                } else {
+                    tvSuggestion.visibility = View.GONE
+                }
             } else {
                 tvUsageTrend.visibility = View.GONE
+                tvSuggestion.visibility = View.GONE
             }
         }
         
-        // 更新预计可用天数 - 如果为0但有余额，显示估计值
+        // 更新预计可用天数
         if (data.estimatedDays > 0) {
-            tvEstimatedUsage.text = "${data.estimatedDays} 天"
+            // 计算预计用尽的日期
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.DAY_OF_MONTH, data.estimatedDays)
+            val dateFormat = SimpleDateFormat("MM月dd日", Locale.CHINA)
+            val estimatedEmptyDate = dateFormat.format(calendar.time)
             
-            // 根据剩余天数设置不同的颜色
+            tvEstimatedUsage.text = String.format("%d 天 (预计%s用完)", data.estimatedDays, estimatedEmptyDate)
+            
+            // 根据剩余天数设置不同的颜色和提示信息
             val colorResId = when {
-                data.estimatedDays <= 3 -> R.color.danger_red
-                data.estimatedDays <= 7 -> R.color.warning_yellow
-                else -> R.color.safe_green
+                data.estimatedDays <= 3 -> {
+                    tvWarningMessage.visibility = View.VISIBLE
+                    tvWarningMessage.text = "电费即将用完，请尽快充值"
+                    tvWarningMessage.setTextColor(getColor(R.color.danger_red))
+                    R.color.danger_red
+                }
+                data.estimatedDays <= 7 -> {
+                    tvWarningMessage.visibility = View.VISIBLE
+                    tvWarningMessage.text = "电费剩余不足一周，请及时充值"
+                    tvWarningMessage.setTextColor(getColor(R.color.warning_yellow))
+                    R.color.warning_yellow
+                }
+                else -> {
+                    tvWarningMessage.visibility = View.GONE
+                    R.color.safe_green
+                }
             }
             tvEstimatedUsage.setTextColor(getColor(colorResId))
         } else if (data.balance > 0) {
-            // 有余额但估计天数为0，显示基于余额的估计
-            val estimatedDays = (data.balance / 2.5f).toInt()
-            tvEstimatedUsage.text = "约 $estimatedDays 天 (估计值)"
+            // 基于余额估算剩余天数
+            val dailyUsage = if (data.dailyUsage > 0) data.dailyUsage else 2.5f
+            val estimatedDays = (data.balance / dailyUsage).toInt()
+            
+            // 计算预计用尽的日期
+            val calendar = Calendar.getInstance()
+            calendar.add(Calendar.DAY_OF_MONTH, estimatedDays)
+            val dateFormat = SimpleDateFormat("MM月dd日", Locale.CHINA)
+            val estimatedEmptyDate = dateFormat.format(calendar.time)
+            
+            tvEstimatedUsage.text = String.format("约 %d 天 (预计%s用完)", estimatedDays, estimatedEmptyDate)
             tvEstimatedUsage.setTextColor(getColor(R.color.warning_yellow))
+            
+            // 根据剩余天数设置提示
+            if (estimatedDays <= 7) {
+                tvWarningMessage.visibility = View.VISIBLE
+                tvWarningMessage.text = "电费可能不足一周，请注意充值"
+                tvWarningMessage.setTextColor(getColor(R.color.warning_yellow))
+            }
         } else {
             tvEstimatedUsage.text = "未知"
-        }
-        
-        // 添加建议信息
-        if (data.estimatedDays <= 3 && data.estimatedDays > 0) {
-            tvSuggestion.visibility = View.VISIBLE
-            tvSuggestion.text = "电量极低，请立即充值！"
-            tvSuggestion.setTextColor(getColor(R.color.danger_red))
-        } else if ((data.estimatedDays <= 7 && data.estimatedDays > 0) || 
-                  (data.balance > 0 && data.balance < viewModel.getLowBalanceThreshold())) {
-            tvSuggestion.visibility = View.VISIBLE
-            tvSuggestion.text = "电量偏低，建议近期充值"
-            tvSuggestion.setTextColor(getColor(R.color.warning_yellow))
-        } else if (data.balance <= 0 && viewModel.isJsessionIdSet.value == true) {
-            tvSuggestion.visibility = View.VISIBLE
-            tvSuggestion.text = "无法获取电费数据，可能需要重新配置或刷新"
-            tvSuggestion.setTextColor(getColor(R.color.warning_yellow))
-        } else {
-            tvSuggestion.visibility = View.GONE
+            tvEstimatedUsage.setTextColor(getColor(R.color.warning_yellow))
         }
         
         // 检查是否需要显示余额不足警告

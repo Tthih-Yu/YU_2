@@ -250,14 +250,14 @@ class ElectricityRepository(private val context: Context) {
     // 计算日均用电量
     private suspend fun calculateDailyUsage(): Float {
         try {
-            // 使用最近14天的数据计算平均用电量，提高数据样本量
+            // 使用最近30天的数据计算平均用电量，提高数据样本量和准确度
             val recentData = withContext(Dispatchers.IO) {
-                database.electricityDao().getRecentData(14)
+                database.electricityDao().getRecentData(30)
             }
             
             if (recentData.size < 2) {
                 Log.d("ElectricityRepo", "计算日均用电: 历史数据不足，至少需要2条记录")
-                return 0f
+                return estimateDefaultDailyUsage()
             }
             
             // 过滤掉充值记录的干扰，只考虑电费减少的部分
@@ -279,15 +279,15 @@ class ElectricityRepository(private val context: Context) {
             
             if (dataPoints.size < 2) {
                 Log.d("ElectricityRepo", "计算日均用电: 有效数据点不足，至少需要2个有效数据点")
-                return 0f
+                return estimateDefaultDailyUsage()
             }
             
             // 按时间排序
             dataPoints.sortBy { it.first.time }
             
-            // 计算每天的用电量并累计
-            var totalUsage = 0f
-            var validDays = 0f
+            // 检测是否有充值记录
+            val possibleRecharges = mutableListOf<Pair<Date, Float>>()
+            val usageRecords = mutableListOf<Triple<Date, Date, Float>>() // 开始日期、结束日期、用电量
             
             for (i in 0 until dataPoints.size - 1) {
                 val curr = dataPoints[i]
@@ -297,33 +297,85 @@ class ElectricityRepository(private val context: Context) {
                 val diffInMillis = next.first.time - curr.first.time
                 val diffInDays = TimeUnit.MILLISECONDS.toDays(diffInMillis).toFloat()
                 
-                // 只计算余额减少的情况（用电）
-                val balanceDiff = curr.second - next.second
+                // 计算余额变化
+                val balanceDiff = next.second - curr.second
                 
-                // 有效天数至少为0.5天，避免时间间隔过短导致计算偏差
-                if (diffInDays >= 0.5 && balanceDiff > 0) {
-                    val dailyRate = balanceDiff / diffInDays
-                    totalUsage += balanceDiff
-                    validDays += diffInDays
-                    Log.d("ElectricityRepo", "计算日均用电: 从 ${SimpleDateFormat("MM-dd", Locale.CHINA).format(curr.first)} 至 ${SimpleDateFormat("MM-dd", Locale.CHINA).format(next.first)}, ${diffInDays}天消耗${balanceDiff}元, 日均${dailyRate}元")
+                // 余额增加，可能是充值
+                if (balanceDiff > 0) {
+                    possibleRecharges.add(Pair(next.first, balanceDiff))
+                    Log.d("ElectricityRepo", "检测到可能的充值: 日期=${SimpleDateFormat("MM-dd HH:mm", Locale.CHINA).format(next.first)}, 金额=${balanceDiff}元")
+                }
+                // 余额减少，记录用电情况
+                else if (balanceDiff < 0 && diffInDays > 0) {
+                    usageRecords.add(Triple(curr.first, next.first, -balanceDiff))
+                    Log.d("ElectricityRepo", "检测到用电记录: 从 ${SimpleDateFormat("MM-dd", Locale.CHINA).format(curr.first)} 至 ${SimpleDateFormat("MM-dd", Locale.CHINA).format(next.first)}, ${diffInDays}天消耗${-balanceDiff}元")
+                }
+            }
+            
+            // 如果没有用电记录，尝试使用其他方法估算
+            if (usageRecords.isEmpty()) {
+                return estimateBasedOnBalance(dataPoints.lastOrNull()?.second ?: 0f)
+            }
+            
+            // 计算最近7天和最近30天的用电平均值，以反映最近的用电趋势
+            val now = Date()
+            val recent7Days = usageRecords.filter { 
+                val endTime = it.second.time
+                val diffInDays = TimeUnit.MILLISECONDS.toDays(now.time - endTime)
+                diffInDays <= 7
+            }
+            
+            // 计算平均每天消耗电费（最近数据权重更高）
+            var totalUsage = 0f
+            var totalDays = 0f
+            
+            for (record in usageRecords) {
+                val startTime = record.first.time
+                val endTime = record.second.time
+                val diffInDays = TimeUnit.MILLISECONDS.toDays(endTime - startTime).toFloat()
+                
+                // 有效天数至少为0.25天，避免时间间隔过短导致计算偏差
+                if (diffInDays >= 0.25) {
+                    val usage = record.third
+                    val daysWeight = if (diffInDays > 5) 5f else diffInDays // 限制单个记录的最大权重
+                    totalUsage += usage
+                    totalDays += diffInDays
                 }
             }
             
             // 计算平均每天消耗电费
-            val avgDailyUsage = if (validDays > 0) totalUsage / validDays else 0f
+            var avgDailyUsage = if (totalDays > 0) totalUsage / totalDays else 0f
             
-            // 如果计算结果为0，使用一个默认的估计值
-            if (avgDailyUsage <= 0f) {
-                Log.d("ElectricityRepo", "计算日均用电: 没有有效的用电记录，使用默认估计值")
-                // 根据余额估算一个合理的日均用电量
-                val latestBalance = dataPoints.lastOrNull()?.second ?: 0f
-                return if (latestBalance > 0) {
-                    // 估计一个月的电费约为50-100元
-                    val defaultMonthlyUsage = 75f
-                    defaultMonthlyUsage / 30f  // 每天大约2.5元
-                } else {
-                    0f
+            // 检查最近7天的用电情况，如有明显差异则调整
+            if (recent7Days.isNotEmpty()) {
+                var recent7DaysUsage = 0f
+                var recent7DaysDuration = 0f
+                
+                for (record in recent7Days) {
+                    val startTime = record.first.time
+                    val endTime = record.second.time
+                    val diffInDays = TimeUnit.MILLISECONDS.toDays(endTime - startTime).toFloat()
+                    
+                    if (diffInDays >= 0.25) {
+                        recent7DaysUsage += record.third
+                        recent7DaysDuration += diffInDays
+                    }
                 }
+                
+                val recent7DaysAvg = if (recent7DaysDuration > 0) recent7DaysUsage / recent7DaysDuration else 0f
+                
+                // 如果最近7天的平均用电量明显不同，给予更高权重
+                if (recent7DaysAvg > 0 && recent7DaysDuration >= 2) {
+                    // 结合长期和最近的用电量，最近的用电量权重更高
+                    avgDailyUsage = (avgDailyUsage * 0.4f + recent7DaysAvg * 0.6f)
+                    Log.d("ElectricityRepo", "调整日均用电量: 综合考虑长期(${totalUsage/totalDays}元/天)和最近7天(${recent7DaysAvg}元/天)的用电情况")
+                }
+            }
+            
+            // 如果计算结果过低，使用一个合理的最小值
+            if (avgDailyUsage < 0.5f) {
+                avgDailyUsage = estimateDefaultDailyUsage()
+                Log.d("ElectricityRepo", "计算的日均用电量过低，使用估计值: ${avgDailyUsage}元/天")
             }
             
             // 根据时间段调整用电量预测（冬夏季用电高于春秋季）
@@ -332,8 +384,8 @@ class ElectricityRepository(private val context: Context) {
             
             // 季节调整系数：夏季(6-9月)和冬季(12-2月)用电量较高
             val seasonalFactor = when (month) {
-                in 6..9 -> 1.2f  // 夏季
-                in 12..12, in 1..2 -> 1.15f  // 冬季
+                in 6..9 -> 1.2f  // 夏季空调用电增加
+                in 12..12, in 1..2 -> 1.15f  // 冬季取暖用电增加
                 else -> 1.0f  // 春秋季
             }
             
@@ -343,9 +395,43 @@ class ElectricityRepository(private val context: Context) {
             return adjustedDailyUsage
         } catch (e: Exception) {
             Log.e("ElectricityRepo", "计算日均用电异常: ${e.message}", e)
-            // 返回一个默认估计值，避免返回0导致UI显示"未知"
-            return 2.5f  // 每天大约2.5元
+            return estimateDefaultDailyUsage()
         }
+    }
+    
+    // 基于余额估算日均用电量
+    private fun estimateBasedOnBalance(balance: Float): Float {
+        // 根据当前余额决定估算的日均用电量
+        // 余额高时，可能会使用更多电器；余额低时，可能会更加节约用电
+        val estimatedMonthlyUsage = when {
+            balance >= 150 -> 90f  // 余额充足，预计每月90元
+            balance >= 100 -> 80f  // 余额较多，预计每月80元
+            balance >= 50 -> 70f   // 余额适中，预计每月70元
+            balance > 0 -> 60f     // 余额较少，预计每月60元
+            else -> 75f            // 无余额数据，使用平均值
+        }
+        
+        val dailyUsage = estimatedMonthlyUsage / 30f
+        Log.d("ElectricityRepo", "基于余额(${balance}元)估算日均用电量: ${dailyUsage}元/天")
+        return dailyUsage
+    }
+    
+    // 提供一个默认的日均用电量估计值
+    private fun estimateDefaultDailyUsage(): Float {
+        // 获取当前月份以调整估计值
+        val calendar = Calendar.getInstance()
+        val month = calendar.get(Calendar.MONTH) + 1
+        
+        // 基于季节调整默认估计值
+        val monthlyUsage = when (month) {
+            in 6..9 -> 85f  // 夏季 - 空调用电增加
+            in 12..12, in 1..2 -> 80f  // 冬季 - 取暖用电增加
+            else -> 65f  // 春秋季 - 用电相对较少
+        }
+        
+        val dailyUsage = monthlyUsage / 30f
+        Log.d("ElectricityRepo", "使用季节性默认日均用电量估计值: ${dailyUsage}元/天")
+        return dailyUsage
     }
     
     // 计算剩余天数（按照当前用电量计算）
@@ -359,25 +445,87 @@ class ElectricityRepository(private val context: Context) {
             
             // 如果日均用电量太小或为零，提供一个合理的估计值
             if (dailyUsage < 0.5f) {
-                // 基于平均月用电75元来估算
-                val estimatedDailyUsage = 75f / 30f  // 约2.5元/天
+                // 使用季节性默认日均用电量
+                val estimatedDailyUsage = estimateDefaultDailyUsage()
                 val estimatedDays = (balance / estimatedDailyUsage).toInt()
                 Log.d("ElectricityRepo", "计算剩余天数: 日均用电量过低(${dailyUsage}), 使用默认估计值(${estimatedDailyUsage}元/天), 估计可用${estimatedDays}天")
                 return estimatedDays
             }
             
-            val days = (balance / dailyUsage).toInt()
-            Log.d("ElectricityRepo", "计算剩余天数: 余额${balance}元, 日均用电${dailyUsage}元/天, 估计可用${days}天")
-            return days
+            // 考虑季节变化因素
+            val calendar = Calendar.getInstance()
+            val currentMonth = calendar.get(Calendar.MONTH) + 1
+            
+            // 检查未来日期是否会进入高耗电季节
+            var adjustedBalance = balance
+            var estimatedDays = 0
+            var currentDailyUsage = dailyUsage
+            var remainingBalance = adjustedBalance
+            
+            // 分阶段计算剩余天数，考虑季节变化
+            while (remainingBalance > 0) {
+                // 计算当前阶段可用天数
+                val daysInCurrentStage = (remainingBalance / currentDailyUsage).coerceAtMost(30f) // 最多预测30天
+                
+                // 累加天数
+                estimatedDays += daysInCurrentStage.toInt()
+                
+                // 扣除已使用的余额
+                remainingBalance -= daysInCurrentStage * currentDailyUsage
+                
+                // 检查下一阶段是否进入了新的月份，调整用电量
+                val nextStageMonth = getMonthAfterDays(currentMonth, estimatedDays)
+                val seasonalFactor = when (nextStageMonth) {
+                    in 6..9 -> 1.2f  // 夏季
+                    in 12..12, in 1..2 -> 1.15f  // 冬季
+                    else -> 1.0f  // 春秋季
+                }
+                
+                // 如果季节变化，调整日均用电量
+                if (getSeasonForMonth(nextStageMonth) != getSeasonForMonth(currentMonth)) {
+                    currentDailyUsage = dailyUsage * seasonalFactor
+                    Log.d("ElectricityRepo", "计算剩余天数: 预测进入新季节(${nextStageMonth}月), 调整日均用电量为${currentDailyUsage}元/天")
+                }
+                
+                // 如果剩余不足一天使用量，结束计算
+                if (remainingBalance < currentDailyUsage) {
+                    break
+                }
+            }
+            
+            // 为避免过度乐观预测，设置上限为90天
+            val cappedEstimatedDays = Math.min(estimatedDays, 90)
+            Log.d("ElectricityRepo", "计算剩余天数: 原始预测=${estimatedDays}天, 上限限制后=${cappedEstimatedDays}天")
+            
+            return cappedEstimatedDays
         } catch (e: Exception) {
             Log.e("ElectricityRepo", "计算剩余天数异常: ${e.message}", e)
             // 出现异常时，提供一个基于余额的粗略估计
             if (balance > 0) {
-                // 假设每天使用2.5元
-                val defaultEstimate = (balance / 2.5f).toInt()
-                return maxOf(defaultEstimate, 1)  // 至少返回1天
+                // 假设每天使用基于季节的默认值
+                val defaultDailyUsage = estimateDefaultDailyUsage()
+                val defaultEstimate = (balance / defaultDailyUsage).toInt()
+                return Math.min(defaultEstimate, 90)  // 同样限制最大预测为90天
             }
             return 0
+        }
+    }
+    
+    // 获取指定天数后的月份
+    private fun getMonthAfterDays(startMonth: Int, days: Int): Int {
+        val calendar = Calendar.getInstance()
+        calendar.set(Calendar.MONTH, startMonth - 1) // Calendar.MONTH是0-based
+        calendar.add(Calendar.DAY_OF_YEAR, days)
+        return calendar.get(Calendar.MONTH) + 1 // 返回1-based月份
+    }
+    
+    // 根据月份获取季节
+    private fun getSeasonForMonth(month: Int): Int {
+        return when (month) {
+            in 3..5 -> 0  // 春季
+            in 6..8 -> 1  // 夏季
+            in 9..11 -> 2  // 秋季
+            else -> 3      // 冬季
         }
     }
     
