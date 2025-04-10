@@ -54,6 +54,23 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
         STABLE       // 用电量稳定
     }
     
+    // 日均用电数据来源
+    enum class DataSource {
+        SHORT_TERM,       // 基于最近7天数据
+        MEDIUM_TERM,      // 基于最近30天数据
+        LONG_TERM,        // 基于长期数据
+        RECHARGE_PATTERN, // 基于充值模式分析
+        ESTIMATED         // 基于智能估算
+    }
+    
+    // 当前使用的数据源
+    private var currentDataSource: DataSource = DataSource.ESTIMATED
+    
+    // 获取日均用电数据的来源
+    fun getDataSource(callback: (DataSource) -> Unit) {
+        callback(currentDataSource)
+    }
+    
     init {
         // 初始化时检查JSESSIONID是否设置
         checkJsessionId()

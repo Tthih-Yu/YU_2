@@ -198,7 +198,7 @@ class ElectricityActivity : AppCompatActivity() {
             tvNextUpdate.text = "未知"
         }
         
-        // 更新用电统计 - 即使为0也显示估计值
+        // 更新用电统计 - 展示基于实际历史数据的详细信息
         if (data.dailyUsage > 0) {
             // 根据用电量大小设置不同的颜色
             val colorResId = when {
@@ -207,14 +207,56 @@ class ElectricityActivity : AppCompatActivity() {
                 else -> R.color.usage_stable  // 用电量适中
             }
             tvDailyUsage.setTextColor(getColor(colorResId))
-            tvDailyUsage.text = String.format("%.2f 元/天", data.dailyUsage)
             
-            // 添加每月预计用电量的信息
+            // 显示日均和月度用电量预估
             val monthlyUsage = data.dailyUsage * 30
-            tvDailyUsage.append(" (约 ${String.format("%.0f", monthlyUsage)} 元/月)")
+            
+            // 查询历史数据，判断用电量计算的依据
+            viewModel.getDataSource { dataSource ->
+                runOnUiThread {
+                    when (dataSource) {
+                        ElectricityViewModel.DataSource.SHORT_TERM -> {
+                            // 基于最近7天的数据
+                            tvDailyUsage.text = String.format("%.2f 元/天 (近7天平均)", data.dailyUsage)
+                        }
+                        ElectricityViewModel.DataSource.MEDIUM_TERM -> {
+                            // 基于最近30天的数据
+                            tvDailyUsage.text = String.format("%.2f 元/天 (近30天平均)", data.dailyUsage)
+                        }
+                        ElectricityViewModel.DataSource.LONG_TERM -> {
+                            // 基于长期数据
+                            tvDailyUsage.text = String.format("%.2f 元/天 (长期平均)", data.dailyUsage)
+                        }
+                        ElectricityViewModel.DataSource.RECHARGE_PATTERN -> {
+                            // 基于充值模式
+                            tvDailyUsage.text = String.format("%.2f 元/天 (充值频率分析)", data.dailyUsage)
+                        }
+                        ElectricityViewModel.DataSource.ESTIMATED -> {
+                            // 基于智能估算
+                            tvDailyUsage.text = String.format("%.2f 元/天 (智能估算)", data.dailyUsage)
+                        }
+                    }
+                    
+                    // 添加每月预计总用电
+                    tvDailyUsage.append("\n约 ${String.format("%.0f", monthlyUsage)} 元/月")
+                    
+                    // 检查与基准值差异
+                    val standardUsage = 2.5f  // 标准基准值
+                    val percentDiff = ((data.dailyUsage - standardUsage) / standardUsage) * 100
+                    
+                    if (Math.abs(percentDiff) > 20) {
+                        val diffText = if (percentDiff > 0) 
+                            String.format("高于平均%.0f%%", percentDiff)
+                        else 
+                            String.format("低于平均%.0f%%", Math.abs(percentDiff))
+                            
+                        tvDailyUsage.append(" ($diffText)")
+                    }
+                }
+            }
         } else {
-            // 使用默认估计值时显示更清晰的信息
-            tvDailyUsage.text = "无历史数据，使用季节性估计值"
+            // 没有历史数据时的显示
+            tvDailyUsage.text = "暂无历史数据，使用估算值"
             tvDailyUsage.setTextColor(getColor(R.color.warning_yellow))
         }
         
