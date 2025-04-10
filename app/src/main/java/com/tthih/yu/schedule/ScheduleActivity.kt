@@ -32,6 +32,7 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
@@ -734,210 +735,236 @@ class ScheduleActivity : AppCompatActivity() {
         
         val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
         
-        Column(
+        // 添加滚动支持
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MatchaBgColor)
                 .padding(PaddingValues(bottom = 56.dp))
         ) {
             // 顶部标题栏
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-                    .clip(RoundedCornerShape(16.dp))
-                    .background(MatchaCardBg)
-                    .padding(12.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                IconButton(
-                    onClick = { finish() },
+            item {
+                Row(
                     modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MatchaLightGreen)
+                        .fillMaxWidth()
+                        .padding(16.dp)
+                        .clip(RoundedCornerShape(16.dp))
+                        .background(MatchaCardBg)
+                        .padding(12.dp),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text("<", fontSize = 18.sp, color = MatchaTextPrimary)
-                }
-                
-                Text(
-                    text = "课程表设置",
-                    fontSize = 20.sp,
-                    fontWeight = FontWeight.SemiBold,
-                    modifier = Modifier.weight(1f),
-                    textAlign = TextAlign.Center,
-                    color = MatchaTextPrimary
-                )
-                
-                Box(
-                    modifier = Modifier.width(40.dp)
-                ) {
-                    // 占位，保持标题居中
+                    IconButton(
+                        onClick = { finish() },
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(RoundedCornerShape(20.dp))
+                            .background(MatchaLightGreen)
+                    ) {
+                        Text("<", fontSize = 18.sp, color = MatchaTextPrimary)
+                    }
+                    
+                    Text(
+                        text = "课程表设置",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.SemiBold,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.Center,
+                        color = MatchaTextPrimary
+                    )
+                    
+                    Box(
+                        modifier = Modifier.width(40.dp)
+                    ) {
+                        // 占位，保持标题居中
+                    }
                 }
             }
             
             // 基本设置标题
-            Text(
-                text = "基本设置",
-                color = MatchaTextSecondary,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .padding(start = 16.dp)
-                    .padding(top = 16.dp)
-                    .padding(bottom = 8.dp)
-            )
+            item {
+                Text(
+                    text = "基本设置",
+                    color = MatchaTextSecondary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .padding(start = 16.dp)
+                        .padding(top = 16.dp)
+                        .padding(bottom = 8.dp)
+                )
+            }
             
             // 设置项卡片背景
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MatchaCardBg
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 2.dp
-                ),
-                border = BorderStroke(1.dp, MatchaLightGreen.copy(alpha = 0.3f))
-            ) {
-                // 开始上课时间
-                SettingItem(
-                    title = "开始上课时间",
-                    subtitle = "课表开始的第一天，不是开学时间",
-                    value = dateFormat.format(startDate)
-                ) {
-                    showDatePicker(startDate) { newDate ->
-                        viewModel.setStartDate(newDate)
-                    }
-                }
-                
-                // 当前的周数
-                SettingItem(
-                    title = "当前的周数",
-                    subtitle = "开学到现在几周，便于我们确定单双周",
-                    value = "$currentWeek"
-                ) {
-                    // 弹出周数选择对话框
-                    showWeekPicker(currentWeek, totalWeeks) { week ->
-                        viewModel.setCurrentWeek(week)
-                    }
-                }
-                
-                // A学期总周数
-                Column(
+            item {
+                Card(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 12.dp)
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = MatchaCardBg
+                    ),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 2.dp
+                    ),
+                    border = BorderStroke(1.dp, MatchaLightGreen.copy(alpha = 0.3f))
                 ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = "本学期总周数",
-                            fontSize = 16.sp,
-                            color = MatchaTextPrimary,
-                            fontWeight = FontWeight.Medium
-                        )
-                        Text(
-                            text = "$totalWeeks",
-                            fontSize = 16.sp,
-                            color = MatchaGreen,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                    }
-                    
-                    Text(
-                        text = "请选择本学期总共多少周",
-                        fontSize = 13.sp,
-                        color = MatchaTextSecondary,
-                        modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
-                    )
-                    
-                    // 进度条
-                    Slider(
-                        value = totalWeeks.toFloat(),
-                        onValueChange = { 
-                            viewModel.setTotalWeeks(it.toInt())
-                        },
-                        valueRange = 10f..24f,
-                        steps = 13, // 24-10-1 = 13
-                        colors = SliderDefaults.colors(
-                            thumbColor = MatchaGreen,
-                            activeTrackColor = MatchaGreen,
-                            inactiveTrackColor = MatchaLightGreen.copy(alpha = 0.3f)
-                        ),
+                    Column(
                         modifier = Modifier.fillMaxWidth()
-                    )
+                    ) {
+                        // 开始上课时间
+                        SettingItem(
+                            title = "开始上课时间",
+                            subtitle = "课表开始的第一天，不是开学时间",
+                            value = dateFormat.format(startDate)
+                        ) {
+                            showDatePicker(startDate) { newDate ->
+                                viewModel.setStartDate(newDate)
+                            }
+                        }
+                        
+                        // 当前的周数
+                        SettingItem(
+                            title = "当前的周数",
+                            subtitle = "开学到现在几周，便于我们确定单双周",
+                            value = "$currentWeek"
+                        ) {
+                            // 弹出周数选择对话框
+                            showWeekPicker(currentWeek, totalWeeks) { week ->
+                                viewModel.setCurrentWeek(week)
+                            }
+                        }
+                        
+                        // A学期总周数
+                        Column(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 16.dp, vertical = 12.dp)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = "本学期总周数",
+                                    fontSize = 16.sp,
+                                    color = MatchaTextPrimary,
+                                    fontWeight = FontWeight.Medium
+                                )
+                                Text(
+                                    text = "$totalWeeks",
+                                    fontSize = 16.sp,
+                                    color = MatchaGreen,
+                                    fontWeight = FontWeight.SemiBold
+                                )
+                            }
+                            
+                            Text(
+                                text = "请选择本学期总共多少周",
+                                fontSize = 13.sp,
+                                color = MatchaTextSecondary,
+                                modifier = Modifier.padding(top = 4.dp, bottom = 12.dp)
+                            )
+                            
+                            // 进度条
+                            Slider(
+                                value = totalWeeks.toFloat(),
+                                onValueChange = { 
+                                    viewModel.setTotalWeeks(it.toInt())
+                                },
+                                valueRange = 10f..24f,
+                                steps = 13, // 24-10-1 = 13
+                                colors = SliderDefaults.colors(
+                                    thumbColor = MatchaGreen,
+                                    activeTrackColor = MatchaGreen,
+                                    inactiveTrackColor = MatchaLightGreen.copy(alpha = 0.3f)
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                    }
                 }
             }
             
-            Spacer(modifier = Modifier.height(16.dp))
+            item {
+                Spacer(modifier = Modifier.height(16.dp))
+            }
             
             // 切换项卡片背景
-            Card(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp),
-                shape = RoundedCornerShape(12.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = Color.White
-                ),
-                elevation = CardDefaults.cardElevation(
-                    defaultElevation = 0.dp
-                )
-            ) {
-                // 是否显示周末
-                SettingSwitch(
-                    title = "是否显示周末",
-                    subtitle = "如果周末有课程，可打开该设置",
-                    isChecked = true
-                ) { isChecked ->
-                    // 实现切换显示周末的逻辑
-                    Toast.makeText(this@ScheduleActivity, "设置已更新", Toast.LENGTH_SHORT).show()
-                }
-                
-                // 是否显示非本周课程
-                SettingSwitch(
-                    title = "是否显示非本周课程",
-                    subtitle = "开启后单双周课程都可以看见哦",
-                    isChecked = false
-                ) { isChecked ->
-                    // 实现切换显示非本周课程的逻辑
-                    Toast.makeText(this@ScheduleActivity, "设置已更新", Toast.LENGTH_SHORT).show()
-                }
-                
-                // 添加分割线
-                Divider(
-                    modifier = Modifier.padding(horizontal = 16.dp),
-                    color = MatchaDivider,
-                    thickness = 1.dp
-                )
-                
-                // 导入课表选项
-                SettingItem(
-                    title = "导入教务系统课表",
-                    subtitle = "从安徽工程大学教务系统导入课表数据",
-                    value = "导入"
+            item {
+                Card(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(
+                        containerColor = Color.White
+                    ),
+                    elevation = CardDefaults.cardElevation(
+                        defaultElevation = 0.dp
+                    )
                 ) {
-                    showImportScheduleDialog()
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        // 是否显示周末
+                        SettingSwitch(
+                            title = "是否显示周末",
+                            subtitle = "如果周末有课程，可打开该设置",
+                            isChecked = true
+                        ) { isChecked ->
+                            // 实现切换显示周末的逻辑
+                            Toast.makeText(this@ScheduleActivity, "设置已更新", Toast.LENGTH_SHORT).show()
+                        }
+                        
+                        // 是否显示非本周课程
+                        SettingSwitch(
+                            title = "是否显示非本周课程",
+                            subtitle = "开启后单双周课程都可以看见哦",
+                            isChecked = false
+                        ) { isChecked ->
+                            // 实现切换显示非本周课程的逻辑
+                            Toast.makeText(this@ScheduleActivity, "设置已更新", Toast.LENGTH_SHORT).show()
+                        }
+                        
+                        // 添加分割线
+                        Divider(
+                            modifier = Modifier.padding(horizontal = 16.dp),
+                            color = MatchaDivider,
+                            thickness = 1.dp
+                        )
+                        
+                        // 导入课表选项
+                        SettingItem(
+                            title = "导入教务系统课表",
+                            subtitle = "从安徽工程大学教务系统导入课表数据",
+                            value = "导入"
+                        ) {
+                            showImportScheduleDialog()
+                        }
+                    }
                 }
             }
             
             // 其他设置项...
-            Text(
-                text = "特色功能",
-                color = MatchaTextSecondary,
-                fontSize = 15.sp,
-                fontWeight = FontWeight.Medium,
-                modifier = Modifier
-                    .padding(start = 16.dp)
-                    .padding(top = 24.dp)
-                    .padding(bottom = 8.dp)
-            )
+            item {
+                Text(
+                    text = "特色功能",
+                    color = MatchaTextSecondary,
+                    fontSize = 15.sp,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier
+                        .padding(start = 16.dp)
+                        .padding(top = 24.dp)
+                        .padding(bottom = 8.dp)
+                )
+            }
+            
+            // 添加更多设置项和底部间距
+            item {
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
     
@@ -948,47 +975,68 @@ class ScheduleActivity : AppCompatActivity() {
         value: String,
         onClick: () -> Unit
     ) {
-        Row(
+        Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .clickable { onClick() }
-                .padding(horizontal = 16.dp)
-                .padding(vertical = 14.dp),
-            verticalAlignment = Alignment.CenterVertically
         ) {
-            Column(
-                modifier = Modifier.weight(1f)
-            ) {
-                Text(
-                    text = title,
-                    fontSize = 16.sp,
-                    color = MatchaTextPrimary,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = subtitle,
-                    fontSize = 13.sp,
-                    color = MatchaTextSecondary
-                )
-            }
-            
             Row(
-                verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
-                    .background(MatchaLightGreen.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
-                    .padding(horizontal = 12.dp, vertical = 6.dp)
+                    .fillMaxWidth()
+                    .padding(horizontal = 16.dp, vertical = 14.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text(
-                    text = value,
-                    fontSize = 14.sp,
-                    color = MatchaGreen
-                )
-                Text(
-                    text = "›",
-                    fontSize = 18.sp,
-                    color = MatchaGreen,
-                    modifier = Modifier.padding(start = 4.dp)
-                )
+                Column(
+                    modifier = Modifier.weight(1f)
+                ) {
+                    Text(
+                        text = title,
+                        fontSize = 16.sp,
+                        color = MatchaTextPrimary,
+                        fontWeight = FontWeight.Medium
+                    )
+                    Text(
+                        text = subtitle,
+                        fontSize = 13.sp,
+                        color = MatchaTextSecondary
+                    )
+                }
+                
+                // 改进按钮样式，使其更可见和更大
+                Box(
+                    modifier = Modifier
+                        .width(80.dp)
+                        .height(36.dp)
+                        .clip(RoundedCornerShape(18.dp))
+                        .background(MatchaLightGreen.copy(alpha = 0.2f))
+                        .border(
+                            width = 1.dp,
+                            color = MatchaGreen.copy(alpha = 0.3f),
+                            shape = RoundedCornerShape(18.dp)
+                        ),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Text(
+                            text = value,
+                            fontSize = 14.sp,
+                            color = MatchaGreen,
+                            fontWeight = FontWeight.Medium
+                        )
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_arrow_right),
+                            contentDescription = "箭头",
+                            tint = MatchaGreen,
+                            modifier = Modifier
+                                .padding(start = 4.dp)
+                                .size(16.dp)
+                        )
+                    }
+                }
             }
         }
         
