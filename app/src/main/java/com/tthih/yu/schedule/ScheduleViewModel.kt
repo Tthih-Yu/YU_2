@@ -1,6 +1,7 @@
 package com.tthih.yu.schedule
 
 import android.app.Application
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
@@ -59,10 +60,20 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
     // 加载当天的课程
     fun loadTodaySchedules() {
         viewModelScope.launch {
+            // 获取今天是星期几
             val todayWeekDay = repository.getTodayWeekDay()
+            // 获取当前周次
             val week = currentWeek.value ?: 1
+            
+            // 添加日志
+            Log.d("ScheduleViewModel", "加载今日课程 - 周次: $week, 星期: $todayWeekDay")
+            
+            // 根据当前周次和今天的星期几加载课程
             val schedules = repository.getSchedulesByWeekAndDay(week, todayWeekDay)
             dailySchedules.postValue(schedules)
+            
+            // 记录加载的课程数
+            Log.d("ScheduleViewModel", "今日课程加载完成 - 数量: ${schedules.size}")
         }
     }
     
