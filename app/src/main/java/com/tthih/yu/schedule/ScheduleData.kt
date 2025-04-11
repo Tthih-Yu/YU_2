@@ -1,5 +1,7 @@
 package com.tthih.yu.schedule
 
+import android.os.Parcel
+import android.os.Parcelable
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 import java.util.Date
@@ -20,7 +22,46 @@ data class ScheduleData(
     val startWeek: Int,              // 开始周次
     val endWeek: Int,                // 结束周次
     val type: Int = 0                // 课程类型 (0-普通课程，1-实验课，2-考试)
-)
+) : Parcelable {
+    
+    constructor(parcel: Parcel) : this(
+        parcel.readInt(),
+        parcel.readString() ?: "",
+        parcel.readString() ?: "",
+        parcel.readString() ?: "",
+        parcel.readInt(),
+        parcel.readInt(),
+        parcel.readInt(),
+        parcel.readInt(),
+        parcel.readInt()
+    )
+    
+    override fun writeToParcel(parcel: Parcel, flags: Int) {
+        parcel.writeInt(id)
+        parcel.writeString(name)
+        parcel.writeString(classroom)
+        parcel.writeString(teacher)
+        parcel.writeInt(weekDay)
+        parcel.writeInt(startNode)
+        parcel.writeInt(endNode)
+        parcel.writeInt(startWeek)
+        parcel.writeInt(endWeek)
+    }
+    
+    override fun describeContents(): Int {
+        return 0
+    }
+    
+    companion object CREATOR : Parcelable.Creator<ScheduleData> {
+        override fun createFromParcel(parcel: Parcel): ScheduleData {
+            return ScheduleData(parcel)
+        }
+        
+        override fun newArray(size: Int): Array<ScheduleData?> {
+            return arrayOfNulls(size)
+        }
+    }
+}
 
 /**
  * 课程节次时间配置

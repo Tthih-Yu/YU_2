@@ -71,6 +71,12 @@
             android:parentActivityName=".MainActivity" />
             
         <activity
+            android:name=".schedule.ScheduleImportActivity"
+            android:label="导入教务系统课表"
+            android:theme="@style/Theme.YU"
+            android:parentActivityName=".schedule.ScheduleActivity" />
+            
+        <activity
             android:name=".campuscard.CampusCardActivity"
             android:label="校园卡"
             android:theme="@style/Theme.YU"

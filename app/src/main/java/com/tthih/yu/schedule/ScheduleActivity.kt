@@ -1,7 +1,10 @@
 package com.tthih.yu.schedule
 
 import android.app.DatePickerDialog
+import android.content.Intent
 import android.os.Bundle
+import android.os.Handler
+import android.os.Looper
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
@@ -43,10 +46,9 @@ import java.text.SimpleDateFormat
 import java.util.*
 import androidx.compose.foundation.border
 import androidx.compose.foundation.BorderStroke
-import android.os.Handler
-import android.os.Looper
 import android.webkit.JavascriptInterface
 import org.json.JSONArray
+import android.util.Log
 
 class ScheduleActivity : AppCompatActivity() {
     
@@ -80,6 +82,27 @@ class ScheduleActivity : AppCompatActivity() {
         
         // 观察周课表数据变化
         viewModel.loadWeekSchedules(viewModel.selectedWeek.value ?: 1)
+    }
+    
+    override fun onResume() {
+        super.onResume()
+        
+        // 每次恢复活动时，强制重新加载课表数据
+        val currentWeek = viewModel.selectedWeek.value ?: viewModel.currentWeek.value ?: 1
+        
+        // 延迟100毫秒执行，确保UI已完全初始化
+        Handler(Looper.getMainLooper()).postDelayed({
+            // 强制重新加载当前周的课表
+            viewModel.loadWeekSchedules(currentWeek)
+            
+            // 强制重新加载当天的课表
+            viewModel.loadTodaySchedules()
+            
+            // 刷新Compose视图
+            findViewById<ComposeView>(R.id.compose_view).invalidate()
+            
+            Log.d("ScheduleActivity", "在onResume中刷新课表数据，当前周: $currentWeek")
+        }, 300)
     }
     
     private fun setupComposeView() {
@@ -1247,224 +1270,34 @@ class ScheduleActivity : AppCompatActivity() {
     }
     
     private fun showImportScheduleDialog() {
-        // 创建一个自定义对话框
-        val dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_import_schedule, null)
-        val importBtn = dialogView.findViewById<androidx.appcompat.widget.AppCompatButton>(R.id.btn_import)
-        val progressBar = dialogView.findViewById<ProgressBar>(R.id.progress_bar)
-        val messageTextView = dialogView.findViewById<TextView>(R.id.tv_message)
-        val webView = WebView(this)
-        
-        // 配置WebView
-        webView.settings.javaScriptEnabled = true
-        webView.settings.domStorageEnabled = true
-        webView.settings.javaScriptCanOpenWindowsAutomatically = true
-        webView.settings.loadsImagesAutomatically = true
-        webView.settings.blockNetworkImage = false
-        webView.settings.useWideViewPort = true
-        webView.settings.loadWithOverviewMode = true
-        webView.settings.setSupportZoom(true)
-        webView.settings.builtInZoomControls = true
-        webView.settings.displayZoomControls = false
-        
-        // 启用WebView调试
-        WebView.setWebContentsDebuggingEnabled(true)
-        
-        webView.settings.userAgentString = "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/94.0.4606.61 Safari/537.36"
-        
-        // 创建容器布局
-        val container = android.widget.LinearLayout(this)
-        container.orientation = android.widget.LinearLayout.VERTICAL
-        container.addView(dialogView)
-        
-        // 配置WebView布局参数
-        val webViewParams = android.widget.LinearLayout.LayoutParams(
-            android.widget.LinearLayout.LayoutParams.MATCH_PARENT,
-            resources.displayMetrics.heightPixels / 2
-        )
-        webView.layoutParams = webViewParams
-        
-        // 初始隐藏WebView
-        webView.visibility = View.GONE
-        container.addView(webView)
-        
-        // 创建对话框
-        val dialog = AlertDialog.Builder(this)
-            .setTitle("导入教务系统课表")
-            .setView(container)
-            .setNegativeButton("取消", null)
-            .create()
-        
-        // 设置导入按钮点击监听
-        importBtn.setOnClickListener {
-            if (webView.visibility == View.GONE) {
-                // 首次点击，显示WebView并加载教务系统
-                webView.visibility = View.VISIBLE
-                messageTextView.text = "请在下方登录教务系统并导航到课表页面，然后再次点击导入按钮"
-                importBtn.text = "解析并导入"
-                
-                // 加载登录页
-                webView.loadUrl("https://webvpn.ahpu.edu.cn/http/webvpn40a1cc242791dfe16b3115ea5846a65e/authserver/login?service=https://webvpn.ahpu.edu.cn/enlink/api/client/callback/cas")
-                
-                // 设置WebViewClient
-                webView.webViewClient = object : WebViewClient() {
-                    override fun onPageFinished(view: WebView?, url: String?) {
-                        super.onPageFinished(view, url)
-                        messageTextView.text = "请登录并导航到课表页面，然后点击导入按钮"
-                    }
-                    
-                    override fun onReceivedError(view: WebView?, request: WebResourceRequest?, error: WebResourceError?) {
-                        super.onReceivedError(view, request, error)
-                        messageTextView.text = "页面加载出错: ${error?.description}"
-                    }
-                }
-            } else {
-                // 第二次点击，执行课表解析
-                progressBar.visibility = View.VISIBLE
-                importBtn.isEnabled = false
-                messageTextView.text = "正在解析课表数据..."
-                
-                // 添加JavaScript接口
-                val jsInterface = ScheduleJsInterface(object : ScheduleImportCallback {
-                    override fun onProgress(message: String) {
-                        runOnUiThread {
-                            messageTextView.text = message
-                        }
-                    }
-                    
-                    override fun onSuccess(schedules: List<ScheduleData>) {
-                        runOnUiThread {
-                            progressBar.visibility = View.GONE
-                            messageTextView.text = "导入成功，共导入${schedules.size}门课程"
-                            
-                            // 保存到数据库
-                            viewModel.clearSchedules {
-                                schedules.forEach { schedule ->
-                                    viewModel.addSchedule(schedule)
-                                }
-                                
-                                Toast.makeText(this@ScheduleActivity, "课表导入成功", Toast.LENGTH_SHORT).show()
-                                
-                                // 重新加载课表
-                                viewModel.loadWeekSchedules(viewModel.selectedWeek.value ?: 1)
-                                viewModel.loadTodaySchedules()
-                                
-                                // 关闭对话框
-                                dialog.dismiss()
-                            }
-                        }
-                    }
-                    
-                    override fun onError(error: String) {
-                        runOnUiThread {
-                            progressBar.visibility = View.GONE
-                            messageTextView.text = "导入失败：$error"
-                            importBtn.isEnabled = true
-                        }
-                    }
-                })
-                webView.addJavascriptInterface(jsInterface, "Android")
-                
-                // 执行课表解析脚本
-                val parseScheduleJs = readRawJsFile(R.raw.schedule_parser)
-                webView.evaluateJavascript(parseScheduleJs) { result ->
-                    // 脚本会通过JavaScript接口回调结果
-                    if (result == "null") {
-                        runOnUiThread {
-                            messageTextView.text = "解析课表失败，请确保页面中显示了课表内容"
-                            importBtn.isEnabled = true
-                        }
-                    }
-                }
-            }
-        }
-        
-        dialog.show()
+        // 使用startActivityForResult启动导入活动
+        val intent = Intent(this, ScheduleImportActivity::class.java)
+        startActivityForResult(intent, REQUEST_IMPORT_SCHEDULE)
     }
     
-    // 导入回调接口
-    interface ScheduleImportCallback {
-        fun onProgress(message: String)
-        fun onSuccess(schedules: List<ScheduleData>)
-        fun onError(error: String)
-    }
-    
-    // JavaScript接口
-    private inner class ScheduleJsInterface(private val callback: ScheduleImportCallback) {
-        @JavascriptInterface
-        fun onProgress(message: String) {
-            callback.onProgress(message)
-        }
+    @Deprecated("Deprecated in Java")
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
         
-        @JavascriptInterface
-        fun onScheduleData(jsonData: String) {
-            try {
-                val schedules = this@ScheduleActivity.parseScheduleData(jsonData)
-                callback.onSuccess(schedules)
-            } catch (e: Exception) {
-                callback.onError("解析课表数据失败: ${e.message}")
-            }
+        if (requestCode == REQUEST_IMPORT_SCHEDULE && resultCode == RESULT_OK) {
+            // 获取导入的课程数量
+            val count = data?.getIntExtra("IMPORTED_COURSES_COUNT", 0) ?: 0
+            
+            // 强制重新加载当前周的课表
+            viewModel.loadWeekSchedules(viewModel.selectedWeek.value ?: 1)
+            
+            // 强制重新加载当天的课表
+            viewModel.loadTodaySchedules()
+            
+            // 提示用户导入成功
+            Toast.makeText(this, "成功导入 $count 门课程", Toast.LENGTH_SHORT).show()
         }
-        
-        @JavascriptInterface
-        fun onError(error: String) {
-            callback.onError(error)
-        }
-    }
-    
-    // 解析课表数据
-    private fun parseScheduleData(jsonData: String): List<ScheduleData> {
-        val schedules = mutableListOf<ScheduleData>()
-        
-        try {
-            val jsonArray = JSONArray(jsonData)
-            for (i in 0 until jsonArray.length()) {
-                val jsonObject = jsonArray.getJSONObject(i)
-                
-                // 解析课程数据
-                val name = jsonObject.getString("name")
-                val position = jsonObject.optString("position", "")
-                val teacher = jsonObject.optString("teacher", "")
-                val day = jsonObject.getInt("day")
-                
-                // 解析上课节次
-                val sectionsArray = jsonObject.getJSONArray("sections")
-                val startNode = sectionsArray.getInt(0)
-                val endNode = sectionsArray.getInt(sectionsArray.length() - 1)
-                
-                // 解析周次
-                val weeksArray = jsonObject.getJSONArray("weeks")
-                val startWeek = weeksArray.getInt(0)
-                val endWeek = weeksArray.getInt(weeksArray.length() - 1)
-                
-                // 创建课程数据对象
-                val schedule = ScheduleData(
-                    name = name,
-                    classroom = position,
-                    teacher = teacher,
-                    weekDay = day,
-                    startNode = startNode,
-                    endNode = endNode,
-                    startWeek = startWeek,
-                    endWeek = endWeek
-                )
-                
-                schedules.add(schedule)
-            }
-        } catch (e: Exception) {
-            throw Exception("解析课表数据失败: ${e.message}")
-        }
-        
-        return schedules
-    }
-    
-    // 读取原始JS文件
-    private fun readRawJsFile(resourceId: Int): String {
-        return resources.openRawResource(resourceId).bufferedReader().use { it.readText() }
     }
     
     companion object {
         const val VIEW_DAILY = 0
         const val VIEW_WEEKLY = 1
         const val VIEW_SETTINGS = 2
+        const val REQUEST_IMPORT_SCHEDULE = 1001
     }
 } 

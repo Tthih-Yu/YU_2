@@ -209,16 +209,19 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
         }
     }
     
-    // 清除所有课程
-    fun clearSchedules(onComplete: () -> Unit) {
+    // 清除所有课程数据
+    fun clearAllSchedules(onComplete: () -> Unit) {
         viewModelScope.launch {
             repository.clearAllSchedules()
             
             // 刷新课程数据
             val week = selectedWeek.value ?: 1
             loadWeekSchedules(week)
+            
+            // 刷新今天的课程列表
             loadTodaySchedules()
             
+            // 调用完成回调
             onComplete()
         }
     }
