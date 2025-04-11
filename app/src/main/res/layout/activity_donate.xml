@@ -156,7 +156,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_marginTop="8dp"
-                android:text="感谢以下用户的赞助支持：\n\n李** - ¥50\n王** - ¥20\n张** - ¥10\n...\n\n您的名字也可以出现在这里"
+                android:text="感谢您的赞助支持"
                 android:textColor="@android:color/black"
                 android:textSize="14sp" />
 

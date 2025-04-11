@@ -65,6 +65,11 @@ import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.text.input.ImeAction
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.material.icons.filled.CalendarViewMonth
+import androidx.compose.ui.text.TextStyle
 
 class ScheduleActivity : AppCompatActivity() {
     
@@ -779,6 +784,18 @@ class ScheduleActivity : AppCompatActivity() {
         val startDate = startDateState.value
         val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
         
+        // 添加用于输入框的状态
+        var currentWeekInput by remember { mutableStateOf(currentWeek.toString()) }
+        var totalWeeksInput by remember { mutableStateOf(totalWeeks.toString()) }
+        
+        // 更新输入框状态当ViewModel数据变化时
+        LaunchedEffect(currentWeek) {
+            currentWeekInput = currentWeek.toString()
+        }
+        LaunchedEffect(totalWeeks) {
+            totalWeeksInput = totalWeeks.toString()
+        }
+        
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
@@ -833,33 +850,46 @@ class ScheduleActivity : AppCompatActivity() {
                 ) {
                     Column(modifier = Modifier.fillMaxWidth()) {
                         SettingItem(
-                            iconResId = Icons.Filled.DateRange, // 使用 Material Icons 占位符
+                            iconResId = Icons.Filled.DateRange, // 使用 Material Icons
                             title = "开学日期",
                             value = dateFormat.format(startDate),
                             onClick = { showDatePicker(startDate) { viewModel.setStartDate(it) } }
                         )
-                        SettingItem(
-                            iconResId = Icons.Filled.ViewWeek, // 更正图标引用
+                        // 修改 当前周数 设置项
+                        EditableSettingItem(
+                            iconResId = Icons.Filled.ViewWeek, // 使用 Material Icons
                             title = "当前周数",
-                            value = "第 $currentWeek 周",
-                            onClick = { showWeekPicker(currentWeek, totalWeeks) { viewModel.setCurrentWeek(it) } }
+                            value = currentWeekInput,
+                            onValueChange = { currentWeekInput = it },
+                            onSave = { 
+                                val week = it.toIntOrNull()
+                                if (week != null && week > 0) {
+                                    viewModel.setCurrentWeek(week)
+                                } else {
+                                    // 输入无效，恢复旧值或提示
+                                    currentWeekInput = currentWeek.toString() 
+                                    Toast.makeText(this@ScheduleActivity, "请输入有效的周数", Toast.LENGTH_SHORT).show()
+                                }
+                            }
                         )
-                        // 总周数设置
-                        Column(modifier = Modifier.padding(16.dp)) {
-                            Text("学期总周数: $totalWeeks", fontWeight = FontWeight.Medium, color = MatchaTextPrimary)
-                            Slider(
-                                value = totalWeeks.toFloat(),
-                                onValueChange = { viewModel.setTotalWeeks(it.toInt()) },
-                                valueRange = 10f..24f,
-                                steps = 13,
-                                colors = SliderDefaults.colors(
-                                    thumbColor = MatchaGreen,
-                                    activeTrackColor = MatchaGreen,
-                                    inactiveTrackColor = MatchaLightGreen.copy(alpha = 0.4f)
-                                ),
-                                modifier = Modifier.fillMaxWidth().padding(top = 4.dp)
-                            )
-                        }
+                        // 修改 学期总周数 设置项
+                        EditableSettingItem(
+                            iconResId = Icons.Filled.CalendarViewMonth, // 换一个更合适的图标
+                            title = "学期总周数",
+                            value = totalWeeksInput,
+                            onValueChange = { totalWeeksInput = it },
+                            onSave = { 
+                                val weeks = it.toIntOrNull()
+                                // 添加合理范围检查 (e.g., 10-24)
+                                if (weeks != null && weeks in 10..24) { 
+                                    viewModel.setTotalWeeks(weeks)
+                                } else {
+                                    // 输入无效，恢复旧值或提示
+                                    totalWeeksInput = totalWeeks.toString()
+                                    Toast.makeText(this@ScheduleActivity, "总周数应在10-24之间", Toast.LENGTH_SHORT).show()
+                                }
+                            }
+                        )
                     }
                 }
             }
@@ -1553,6 +1583,69 @@ class ScheduleActivity : AppCompatActivity() {
                 )
             }
         }
+    }
+    
+    // ---- 新增可编辑的设置项 ----
+    @Composable
+    private fun EditableSettingItem(
+        iconResId: androidx.compose.ui.graphics.vector.ImageVector?,
+        title: String,
+        value: String, 
+        onValueChange: (String) -> Unit,
+        onSave: (String) -> Unit, // 回调函数，在用户完成输入时调用
+        keyboardType: KeyboardType = KeyboardType.Number // 默认为数字键盘
+    ) {
+        val focusManager = LocalFocusManager.current
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = 16.dp, vertical = 8.dp), // 调整垂直边距
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // 显示图标（如果提供）
+            if (iconResId != null) {
+                Icon(
+                    imageVector = iconResId, 
+                    contentDescription = title, 
+                    tint = MatchaGreen, 
+                    modifier = Modifier.size(24.dp).padding(end = 12.dp)
+                )
+            }
+            
+            // 标题
+            Text(
+                text = title,
+                fontSize = 16.sp,
+                color = MatchaTextPrimary,
+                fontWeight = FontWeight.Normal,
+                modifier = Modifier.weight(1f) // 让标题占据剩余空间
+            )
+            
+            // 输入框
+            OutlinedTextField(
+                value = value,
+                onValueChange = onValueChange,
+                modifier = Modifier
+                    .width(80.dp) // 固定宽度
+                    .padding(start = 8.dp),
+                textStyle = TextStyle(textAlign = TextAlign.End),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = keyboardType, imeAction = ImeAction.Done),
+                keyboardActions = androidx.compose.foundation.text.KeyboardActions(
+                    onDone = { 
+                        onSave(value) // 用户点击完成时保存
+                        focusManager.clearFocus() // 清除焦点
+                    }
+                ),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedBorderColor = MatchaGreen,
+                    unfocusedBorderColor = MatchaDivider,
+                    focusedContainerColor = MatchaBgColor.copy(alpha = 0.5f), // 聚焦时背景色
+                    unfocusedContainerColor = Color.Transparent // 未聚焦时透明
+                )
+            )
+        }
+        Divider(modifier = Modifier.padding(start = if (iconResId != null) 52.dp else 16.dp, end = 16.dp), color = MatchaDivider, thickness = 0.5.dp)
     }
     
     companion object {
