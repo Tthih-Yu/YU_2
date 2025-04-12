@@ -70,6 +70,10 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.material.icons.filled.CalendarViewMonth
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.material3.FloatingActionButton
+import androidx.compose.material3.FabPosition
+import androidx.compose.material3.Scaffold
+import androidx.compose.material.icons.filled.Save
 
 class ScheduleActivity : AppCompatActivity() {
     
@@ -223,7 +227,6 @@ class ScheduleActivity : AppCompatActivity() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(MatchaBgColor)
-                .padding(PaddingValues(bottom = 56.dp)) // 底部导航栏高度
         ) {
             // 顶部日期和周次卡片
             Card(
@@ -311,7 +314,8 @@ class ScheduleActivity : AppCompatActivity() {
         Text(
             text = title,
             modifier = Modifier
-                .padding(top = 16.dp, bottom = 8.dp),
+                .padding(top = 16.dp, bottom = 8.dp)
+                .padding(start = 16.dp),
             fontSize = 16.sp,
             fontWeight = FontWeight.Medium,
             color = MatchaTextSecondary
@@ -486,7 +490,6 @@ class ScheduleActivity : AppCompatActivity() {
             modifier = Modifier
                 .fillMaxSize()
                 .background(MatchaBgColor)
-                .padding(PaddingValues(bottom = 56.dp)) // 为底部导航栏留出空间
                 .verticalScroll(rememberScrollState()) // 添加垂直滚动
         ) {
             // 顶部周选择栏
@@ -763,6 +766,7 @@ class ScheduleActivity : AppCompatActivity() {
         val totalWeeksState = remember { mutableStateOf(viewModel.totalWeeks.value ?: 18) }
         val startDateState = remember { mutableStateOf(viewModel.startDate.value ?: Date()) }
         
+        // 添加观察LiveData的代码
         DisposableEffect(viewModel) {
             val currentWeekObserver = Observer<Int> { week -> currentWeekState.value = week ?: 1 }
             val totalWeeksObserver = Observer<Int> { total -> totalWeeksState.value = total ?: 18 }
@@ -779,193 +783,234 @@ class ScheduleActivity : AppCompatActivity() {
             }
         }
         
+        // 获取当前值，以便下面使用
         val currentWeek = currentWeekState.value
         val totalWeeks = totalWeeksState.value
         val startDate = startDateState.value
         val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
+
+        // 添加用于输入框的状态 - 使用获取到的值初始化
+        var currentWeekInput by remember(currentWeek) { mutableStateOf(currentWeek.toString()) }
+        var totalWeeksInput by remember(totalWeeks) { mutableStateOf(totalWeeks.toString()) }
         
-        // 添加用于输入框的状态
-        var currentWeekInput by remember { mutableStateOf(currentWeek.toString()) }
-        var totalWeeksInput by remember { mutableStateOf(totalWeeks.toString()) }
+        // 添加是否修改过的状态
+        var isModified by remember { mutableStateOf(false) }
         
-        // 更新输入框状态当ViewModel数据变化时
-        LaunchedEffect(currentWeek) {
-            currentWeekInput = currentWeek.toString()
-        }
-        LaunchedEffect(totalWeeks) {
-            totalWeeksInput = totalWeeks.toString()
-        }
-        
-        LazyColumn(
+        // 使用Scaffold布局来添加FloatingActionButton
+        Scaffold(
             modifier = Modifier
                 .fillMaxSize()
-                .background(MatchaBgColor)
-                .padding(PaddingValues(bottom = 56.dp))
-        ) {
-            // 顶部标题栏 (保持现有样式)
-            item {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .clip(RoundedCornerShape(16.dp))
-                        .background(MatchaCardBg)
-                        .padding(12.dp),
-                    verticalAlignment = Alignment.CenterVertically
+                .background(MatchaBgColor),
+            floatingActionButton = {
+                FloatingActionButton(
+                    onClick = {
+                        // 保存所有设置
+                        val weekNum = currentWeekInput.toIntOrNull()
+                        if (weekNum != null && weekNum > 0) {
+                            viewModel.setCurrentWeek(weekNum)
+                        }
+                        
+                        val weeksTotal = totalWeeksInput.toIntOrNull()
+                        if (weeksTotal != null && weeksTotal in 10..24) {
+                            viewModel.setTotalWeeks(weeksTotal)
+                        }
+                        
+                        Toast.makeText(this@ScheduleActivity, "设置已保存", Toast.LENGTH_SHORT).show()
+                        isModified = false
+                    },
+                    containerColor = MatchaGreen,
+                    contentColor = Color.White
                 ) {
-                    // 返回按钮
-                    IconButton(
-                        onClick = { finish() }, // 假设点击返回按钮结束当前Activity
-                        modifier = Modifier.size(40.dp)
+                    Icon(Icons.Filled.Save, contentDescription = "保存设置")
+                }
+            },
+            floatingActionButtonPosition = FabPosition.End,
+            containerColor = MatchaBgColor // 背景色与原来保持一致
+        ) { paddingValues -> // Scaffold 提供的 paddingValues 已经考虑了FAB
+            LazyColumn(
+                modifier = Modifier
+                    .fillMaxSize()
+                    // 使用 Scaffold 提供的 paddingValues
+                    .padding(paddingValues) 
+            ) {
+                // 顶部标题栏 (保持现有样式)
+                item {
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(16.dp)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MatchaCardBg)
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
                     ) {
-                       Icon(painter = painterResource(id = R.drawable.ic_arrow_left), 
-                            contentDescription = "返回", 
-                            tint = MatchaGreen)
-                    }
-                    
-                    Text(
-                        text = "课程表设置",
-                        fontSize = 20.sp,
-                        fontWeight = FontWeight.SemiBold,
-                        modifier = Modifier.weight(1f),
-                        textAlign = TextAlign.Center,
-                        color = MatchaTextPrimary
-                    )
-                    
-                    // 占位符，保持标题居中
-                    Spacer(modifier = Modifier.width(40.dp))
-                }
-            }
-            
-            // 基本设置分组
-            item { SectionHeader("基本设置") }
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MatchaCardBg),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        SettingItem(
-                            iconResId = Icons.Filled.DateRange, // 使用 Material Icons
-                            title = "开学日期",
-                            value = dateFormat.format(startDate),
-                            onClick = { showDatePicker(startDate) { viewModel.setStartDate(it) } }
+                        // 返回按钮
+                        IconButton(
+                            onClick = { finish() }, // 假设点击返回按钮结束当前Activity
+                            modifier = Modifier.size(40.dp)
+                        ) {
+                           Icon(painter = painterResource(id = R.drawable.ic_arrow_left), 
+                                contentDescription = "返回", 
+                                tint = MatchaGreen)
+                        }
+                        
+                        Text(
+                            text = "课程表设置",
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.SemiBold,
+                            modifier = Modifier.weight(1f),
+                            textAlign = TextAlign.Center,
+                            color = MatchaTextPrimary
                         )
-                        // 修改 当前周数 设置项
-                        EditableSettingItem(
-                            iconResId = Icons.Filled.ViewWeek, // 使用 Material Icons
-                            title = "当前周数",
-                            value = currentWeekInput,
-                            onValueChange = { currentWeekInput = it },
-                            onSave = { 
-                                val week = it.toIntOrNull()
-                                if (week != null && week > 0) {
-                                    viewModel.setCurrentWeek(week)
-                                } else {
-                                    // 输入无效，恢复旧值或提示
-                                    currentWeekInput = currentWeek.toString() 
-                                    Toast.makeText(this@ScheduleActivity, "请输入有效的周数", Toast.LENGTH_SHORT).show()
+                        
+                        // 占位符，保持标题居中
+                        Spacer(modifier = Modifier.width(40.dp))
+                    }
+                }
+                
+                // 基本设置分组
+                item { SectionHeader("基本设置") }
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MatchaCardBg),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SettingItem(
+                                iconResId = Icons.Filled.DateRange, // 使用 Material Icons
+                                title = "开学日期",
+                                value = dateFormat.format(startDate),
+                                onClick = { 
+                                    showDatePicker(startDate) { 
+                                        viewModel.setStartDate(it) 
+                                        isModified = true
+                                    } 
                                 }
-                            }
-                        )
-                        // 修改 学期总周数 设置项
-                        EditableSettingItem(
-                            iconResId = Icons.Filled.CalendarViewMonth, // 换一个更合适的图标
-                            title = "学期总周数",
-                            value = totalWeeksInput,
-                            onValueChange = { totalWeeksInput = it },
-                            onSave = { 
-                                val weeks = it.toIntOrNull()
-                                // 添加合理范围检查 (e.g., 10-24)
-                                if (weeks != null && weeks in 10..24) { 
-                                    viewModel.setTotalWeeks(weeks)
-                                } else {
-                                    // 输入无效，恢复旧值或提示
-                                    totalWeeksInput = totalWeeks.toString()
-                                    Toast.makeText(this@ScheduleActivity, "总周数应在10-24之间", Toast.LENGTH_SHORT).show()
-                                }
-                            }
-                        )
-                    }
-                }
-            }
-            
-            // 显示设置分组
-            item { SectionHeader("显示设置") }
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MatchaCardBg),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(modifier = Modifier.fillMaxWidth()) {
-                        SettingSwitch(
-                            iconResId = Icons.Filled.Weekend, // 使用 Material Icons 占位符
-                            title = "显示周末",
-                            subtitle = "课表中是否显示周六日",
-                            isChecked = true, // 示例值，需要从ViewModel或配置获取
-                            onCheckedChange = { /* TODO: 实现逻辑 */ }
-                        )
-                        SettingSwitch(
-                            iconResId = Icons.Filled.EventAvailable, // 使用 Material Icons 占位符
-                            title = "显示非本周课程",
-                            subtitle = "灰色显示非当前周次的课程",
-                            isChecked = false, // 示例值
-                            onCheckedChange = { /* TODO: 实现逻辑 */ }
-                        )
-                    }
-                }
-            }
-
-            // 数据管理分组
-            item { SectionHeader("数据管理") }
-            item {
-                Card(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp),
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MatchaCardBg),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                     Column(modifier = Modifier.fillMaxWidth()) {
-                        SettingItem(
-                            iconResId = Icons.Filled.Input, // 使用 Material Icons 占位符
-                            title = "导入课表",
-                            value = "从教务系统导入",
-                            onClick = { showImportScheduleDialog() }
-                        )
-                         SettingItem(
-                            iconResId = Icons.Filled.DeleteSweep, // 使用 Material Icons 占位符
-                            title = "清空课表",
-                            value = "删除所有课程数据",
-                            onClick = { 
-                                // 添加确认对话框
-                                AlertDialog.Builder(this@ScheduleActivity)
-                                    .setTitle("确认清空")
-                                    .setMessage("确定要删除所有课程数据吗？此操作不可恢复。")
-                                    .setPositiveButton("清空") { _, _ -> 
-                                        viewModel.clearAllSchedules { 
-                                            // 清除完成后显示 Toast
-                                            Toast.makeText(this@ScheduleActivity, "课表已清空", Toast.LENGTH_SHORT).show()
-                                        }
+                            )
+                            // 修改 当前周数 设置项
+                            EditableSettingItem(
+                                iconResId = Icons.Filled.ViewWeek, // 使用 Material Icons
+                                title = "当前周数",
+                                value = currentWeekInput,
+                                onValueChange = { 
+                                    currentWeekInput = it 
+                                    isModified = true
+                                },
+                                onSave = { 
+                                    val week = it.toIntOrNull()
+                                    if (week != null && week > 0) {
+                                        viewModel.setCurrentWeek(week)
+                                        isModified = false
+                                    } else {
+                                        // 输入无效，恢复旧值或提示
+                                        currentWeekInput = currentWeek.toString() 
+                                        Toast.makeText(this@ScheduleActivity, "请输入有效的周数", Toast.LENGTH_SHORT).show()
                                     }
-                                    .setNegativeButton("取消", null)
-                                    .show()
-                             }
-                        )
+                                }
+                            )
+                            // 修改 学期总周数 设置项
+                            EditableSettingItem(
+                                iconResId = Icons.Filled.CalendarViewMonth, // 换一个更合适的图标
+                                title = "学期总周数",
+                                value = totalWeeksInput,
+                                onValueChange = { 
+                                    totalWeeksInput = it 
+                                    isModified = true
+                                },
+                                onSave = { 
+                                    val weeks = it.toIntOrNull()
+                                    // 添加合理范围检查 (e.g., 10-24)
+                                    if (weeks != null && weeks in 10..24) { 
+                                        viewModel.setTotalWeeks(weeks)
+                                        isModified = false
+                                    } else {
+                                        // 输入无效，恢复旧值或提示
+                                        totalWeeksInput = totalWeeks.toString()
+                                        Toast.makeText(this@ScheduleActivity, "总周数应在10-24之间", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                        }
                     }
                 }
-            }
+                
+                // 显示设置分组
+                item { SectionHeader("显示设置") }
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MatchaCardBg),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                        Column(modifier = Modifier.fillMaxWidth()) {
+                            SettingSwitch(
+                                iconResId = Icons.Filled.Weekend, // 使用 Material Icons 占位符
+                                title = "显示周末",
+                                subtitle = "课表中是否显示周六日",
+                                isChecked = true, // 示例值，需要从ViewModel或配置获取
+                                onCheckedChange = { /* TODO: 实现逻辑 */ }
+                            )
+                            SettingSwitch(
+                                iconResId = Icons.Filled.EventAvailable, // 使用 Material Icons 占位符
+                                title = "显示非本周课程",
+                                subtitle = "灰色显示非当前周次的课程",
+                                isChecked = false, // 示例值
+                                onCheckedChange = { /* TODO: 实现逻辑 */ }
+                            )
+                        }
+                    }
+                }
 
-            item { Spacer(modifier = Modifier.height(32.dp)) } // 底部间距
+                // 数据管理分组
+                item { SectionHeader("数据管理") }
+                item {
+                    Card(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 16.dp),
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = MatchaCardBg),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                    ) {
+                         Column(modifier = Modifier.fillMaxWidth()) {
+                            SettingItem(
+                                iconResId = Icons.Filled.Input, // 使用 Material Icons 占位符
+                                title = "导入课表",
+                                value = "从教务系统导入",
+                                onClick = { showImportScheduleDialog() }
+                            )
+                             SettingItem(
+                                iconResId = Icons.Filled.DeleteSweep, // 使用 Material Icons 占位符
+                                title = "清空课表",
+                                value = "删除所有课程数据",
+                                onClick = { 
+                                    // 添加确认对话框
+                                    AlertDialog.Builder(this@ScheduleActivity)
+                                        .setTitle("确认清空")
+                                        .setMessage("确定要删除所有课程数据吗？此操作不可恢复。")
+                                        .setPositiveButton("清空") { _, _ -> 
+                                            viewModel.clearAllSchedules { 
+                                                // 清除完成后显示 Toast
+                                                Toast.makeText(this@ScheduleActivity, "课表已清空", Toast.LENGTH_SHORT).show()
+                                            }
+                                        }
+                                        .setNegativeButton("取消", null)
+                                        .show()
+                                 }
+                            )
+                        }
+                    }
+                }
+
+                item { Spacer(modifier = Modifier.height(32.dp)) } // 底部间距
+            }
         }
     }
 

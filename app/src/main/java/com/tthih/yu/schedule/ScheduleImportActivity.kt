@@ -737,7 +737,7 @@ class ScheduleImportActivity : AppCompatActivity() {
         webView.webViewClient = object : WebViewClient() {
             override fun onPageFinished(view: WebView?, url: String?) {
                 super.onPageFinished(view, url)
-                messageTextView.text = "请先登录教务系统，然后点击「导入」按钮开始导入课表"
+                messageTextView.text = "请先登录教务系统，进入用户照片页面即可，然后点击「导入」按钮开始导入课表，等待自动解析完成。"
                 importBtn.isEnabled = true
                 isWebViewLoaded = true
             }

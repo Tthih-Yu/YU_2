@@ -329,15 +329,13 @@ async function getSemestersId(preUrl, courseTableCon) {
 
         // 错误时提供默认选项
         let selectList = [
-            "0:2023-2024学年第二学期",
-            "1:2023-2024学年第一学期",
             "2:2022-2023学年第二学期"
         ];
         let defaultIds = ["62", "61", "60"];
 
         let result = await AIScheduleSelect({
-            titleText: "学期(数据获取出错)",
-            contentText: "请选择学期，将尝试使用这些默认ID",
+            titleText: "学期(默认使用最新学期)",
+            contentText: "将尝试使用这些默认ID",
             selectList: selectList
         });
 
