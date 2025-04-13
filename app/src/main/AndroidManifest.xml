@@ -83,6 +83,12 @@
             android:parentActivityName=".MainActivity" />
             
         <activity
+            android:name=".library.LibraryActivity"
+            android:label="图书馆"
+            android:theme="@style/Theme.YU"
+            android:parentActivityName=".MainActivity" />
+            
+        <activity
             android:name=".AboutActivity"
             android:label="关于"
             android:theme="@style/Theme.YU"
@@ -173,6 +179,13 @@
                 android:value="androidx.startup"
                 tools:node="remove" />
         </provider>
+        
+        <!-- 添加待办活动到图书馆活动后面 -->
+        <activity
+            android:name=".todo.TodoActivity"
+            android:label="待办事项"
+            android:theme="@style/Theme.YU"
+            android:parentActivityName=".MainActivity" />
         
     </application>
 

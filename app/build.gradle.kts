@@ -78,9 +78,9 @@ dependencies {
     implementation("androidx.constraintlayout:constraintlayout:2.1.4")
     
     // Room 数据库
-    implementation("androidx.room:room-runtime:2.6.0")
-    implementation("androidx.room:room-ktx:2.6.0")
-    kapt("androidx.room:room-compiler:2.6.0")
+    implementation("androidx.room:room-runtime:2.6.1")
+    implementation("androidx.room:room-ktx:2.6.1")
+    kapt("androidx.room:room-compiler:2.6.1")
     
     // Kotlin 协程支持
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.1")
@@ -90,6 +90,9 @@ dependencies {
     
     // Preferences
     implementation("androidx.preference:preference-ktx:1.2.1")
+    
+    // Gson for JSON processing
+    implementation("com.google.code.gson:gson:2.10.1")
     
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)

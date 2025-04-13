@@ -37,6 +37,8 @@ import androidx.core.content.ContextCompat
 import com.tthih.yu.electricity.ElectricityActivity
 import com.tthih.yu.schedule.ScheduleActivity
 import com.tthih.yu.campuscard.CampusCardActivity
+import com.tthih.yu.library.LibraryActivity
+import com.tthih.yu.todo.TodoActivity
 import com.tthih.yu.ui.theme.YUTheme
 import java.util.*
 
@@ -140,6 +142,12 @@ class MainActivity : ComponentActivity() {
                         onCampusCardClick = {
                             startActivity(Intent(this, CampusCardActivity::class.java))
                         },
+                        onLibraryClick = {
+                            startActivity(Intent(this, LibraryActivity::class.java))
+                        },
+                        onTodoClick = {
+                            startActivity(Intent(this, TodoActivity::class.java))
+                        },
                         onAboutClick = {
                             startActivity(Intent(this, AboutActivity::class.java))
                         }
@@ -189,6 +197,8 @@ fun HomeScreen(
     onElectricityClick: () -> Unit,
     onScheduleClick: () -> Unit,
     onCampusCardClick: () -> Unit,
+    onLibraryClick: () -> Unit,
+    onTodoClick: () -> Unit,
     onAboutClick: () -> Unit
 ) {
     Column(
@@ -269,7 +279,7 @@ fun HomeScreen(
             
             Spacer(modifier = Modifier.height(16.dp))
             
-            // 第二行功能卡片（预留）
+            // 第二行功能卡片
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween
@@ -286,15 +296,40 @@ fun HomeScreen(
                 
                 Spacer(modifier = Modifier.width(16.dp))
                 
-                // 图书馆卡片（暂未实现）
+                // 图书馆卡片
                 FeatureCard(
                     icon = R.drawable.ic_library,
                     title = "图书馆",
-                    description = "借阅与归还",
+                    description = "图书检索",
                     backgroundColor = Color(0xFFFCE4EC),
                     modifier = Modifier.weight(1f),
-                    onClick = { /* 暂未实现 */ }
+                    onClick = onLibraryClick
                 )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            // 第三行功能卡片
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                // 待办事项卡片
+                FeatureCard(
+                    icon = R.drawable.ic_todo,
+                    title = "待办事项",
+                    description = "管理日常任务",
+                    backgroundColor = Color(0xFFE0F2F1),
+                    modifier = Modifier.weight(1f),
+                    onClick = onTodoClick
+                )
+                
+                Spacer(modifier = Modifier.width(16.dp))
+                
+                // 占位卡片(可以在未来添加更多功能)
+                Box(modifier = Modifier.weight(1f)) {
+                    // 暂时为空
+                }
             }
         }
         

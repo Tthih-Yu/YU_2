@@ -10,5 +10,6 @@
     <!-- 特定域名配置 -->
     <domain-config cleartextTrafficPermitted="true">
         <domain includeSubdomains="true">tysf.ahpu.edu.cn</domain>
+        <domain includeSubdomains="true">211.86.225.3</domain>
     </domain-config>
 </network-security-config> 
