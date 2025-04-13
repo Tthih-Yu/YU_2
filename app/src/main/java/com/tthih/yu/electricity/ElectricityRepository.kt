@@ -841,57 +841,63 @@ class ElectricityRepository(private val context: Context) {
     
     // SharedPreferences相关方法
     fun isJsessionIdSet(): Boolean {
-        return getJsessionId().isNotEmpty()
+        val jsessionId = getJsessionId()
+        return jsessionId.isNotEmpty()
     }
     
     fun getJsessionId(): String {
-        return sharedPreferences.getString(KEY_JSESSION_ID, "") ?: ""
+        return sharedPreferences.getString(PREF_JSESSION_ID, "") ?: ""
     }
     
-    fun saveJsessionId(jsessionId: String) {
+    fun updateJsessionId(jsessionId: String) {
         sharedPreferences.edit {
-            putString(KEY_JSESSION_ID, jsessionId)
+            putString(PREF_JSESSION_ID, jsessionId)
         }
+        Log.d("ElectricityRepo", "JSESSIONID已更新")
     }
     
     fun getCurrentBuilding(): String {
-        return sharedPreferences.getString(KEY_CURRENT_BUILDING, DEFAULT_BUILDING) ?: DEFAULT_BUILDING
+        return sharedPreferences.getString(PREF_BUILDING, DEFAULT_BUILDING) ?: DEFAULT_BUILDING
     }
     
-    fun saveCurrentBuilding(building: String) {
+    fun updateBuilding(building: String) {
         sharedPreferences.edit {
-            putString(KEY_CURRENT_BUILDING, building)
+            putString(PREF_BUILDING, building)
         }
+        Log.d("ElectricityRepo", "宿舍楼已更新为：$building")
     }
     
     fun getRoomId(): String {
-        return sharedPreferences.getString(KEY_ROOM_ID, DEFAULT_ROOM_ID) ?: DEFAULT_ROOM_ID
+        return sharedPreferences.getString(PREF_ROOM_ID, DEFAULT_ROOM_ID) ?: DEFAULT_ROOM_ID
     }
     
-    fun saveRoomId(roomId: String) {
+    fun updateRoomId(roomId: String) {
         sharedPreferences.edit {
-            putString(KEY_ROOM_ID, roomId)
+            putString(PREF_ROOM_ID, roomId)
         }
+        Log.d("ElectricityRepo", "房间号已更新为：$roomId")
     }
     
     fun getRefreshInterval(): Int {
-        return sharedPreferences.getInt(KEY_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL)
+        return sharedPreferences.getInt(PREF_REFRESH_INTERVAL, DEFAULT_REFRESH_INTERVAL)
     }
     
-    fun saveRefreshInterval(minutes: Int) {
+    fun updateRefreshInterval(interval: Int) {
         sharedPreferences.edit {
-            putInt(KEY_REFRESH_INTERVAL, minutes)
+            putInt(PREF_REFRESH_INTERVAL, interval)
         }
+        Log.d("ElectricityRepo", "刷新间隔已更新为：$interval 分钟")
     }
     
     fun getLowBalanceThreshold(): Float {
-        return sharedPreferences.getFloat(KEY_LOW_BALANCE_THRESHOLD, DEFAULT_LOW_BALANCE_THRESHOLD)
+        return sharedPreferences.getFloat(PREF_LOW_BALANCE_THRESHOLD, DEFAULT_LOW_BALANCE_THRESHOLD)
     }
     
-    fun saveLowBalanceThreshold(threshold: Float) {
+    fun updateLowBalanceThreshold(threshold: Float) {
         sharedPreferences.edit {
-            putFloat(KEY_LOW_BALANCE_THRESHOLD, threshold)
+            putFloat(PREF_LOW_BALANCE_THRESHOLD, threshold)
         }
+        Log.d("ElectricityRepo", "低余额阈值已更新为：$threshold 元")
     }
     
     // 根据宿舍楼名称获取宿舍楼ID
@@ -899,20 +905,34 @@ class ElectricityRepository(private val context: Context) {
         return BUILDINGS[buildingName] ?: DEFAULT_BUILDING_ID
     }
     
+    // 添加获取定时刷新设置方法
+    fun isScheduledRefreshEnabled(): Boolean {
+        return sharedPreferences.getBoolean(PREF_SCHEDULED_REFRESH_ENABLED, true)
+    }
+    
+    // 添加更新定时刷新设置方法
+    fun updateScheduledRefreshEnabled(enabled: Boolean) {
+        sharedPreferences.edit {
+            putBoolean(PREF_SCHEDULED_REFRESH_ENABLED, enabled)
+        }
+        Log.d("ElectricityRepo", "定时刷新功能已${if (enabled) "启用" else "禁用"}")
+    }
+    
     companion object {
-        private const val PREF_NAME = "electricity_prefs"
-        private const val KEY_JSESSION_ID = "jsession_id"
-        private const val KEY_CURRENT_BUILDING = "current_building"
-        private const val KEY_ROOM_ID = "room_id"
-        private const val KEY_REFRESH_INTERVAL = "refresh_interval"
-        private const val KEY_LOW_BALANCE_THRESHOLD = "low_balance_threshold"
+        private const val PREF_NAME = "electricity_preferences"
+        private const val PREF_JSESSION_ID = "jsession_id"
+        private const val PREF_BUILDING = "building"
+        private const val PREF_ROOM_ID = "room_id"
+        private const val PREF_REFRESH_INTERVAL = "refresh_interval"
+        private const val PREF_LOW_BALANCE_THRESHOLD = "low_balance_threshold"
+        private const val PREF_SCHEDULED_REFRESH_ENABLED = "scheduled_refresh_enabled"
         
         // 默认值
         private const val DEFAULT_BUILDING = "女05#楼"
         private const val DEFAULT_ROOM_ID = "324"
+        private const val DEFAULT_REFRESH_INTERVAL = 30 // 30分钟
+        private const val DEFAULT_LOW_BALANCE_THRESHOLD = 20f // 20元
         private const val DEFAULT_BUILDING_ID = "34"
-        private const val DEFAULT_REFRESH_INTERVAL = 30
-        private const val DEFAULT_LOW_BALANCE_THRESHOLD = 20f
         
         // API配置
         private const val BASE_URL = "http://tysf.ahpu.edu.cn:8063"

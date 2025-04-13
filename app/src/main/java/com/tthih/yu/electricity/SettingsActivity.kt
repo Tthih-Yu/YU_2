@@ -18,6 +18,11 @@ import android.os.Build
 import com.google.android.material.button.MaterialButton
 import android.app.AlertDialog
 import android.app.PendingIntent
+import androidx.appcompat.widget.SwitchCompat
+import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.PeriodicWorkRequestBuilder
+import androidx.work.WorkManager
+import java.util.concurrent.TimeUnit
 
 class SettingsActivity : AppCompatActivity() {
     
@@ -36,6 +41,8 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var btnSaveSettings: Button
     private lateinit var btnBack: ImageButton
     private lateinit var btnAddWidget: MaterialButton
+    private lateinit var switchScheduledRefresh: SwitchCompat
+    private lateinit var tvScheduledRefreshDesc: TextView
     
     // 当前选中的宿舍楼
     private var currentBuilding = ""
@@ -89,6 +96,8 @@ class SettingsActivity : AppCompatActivity() {
         btnSaveSettings = findViewById(R.id.btn_save_settings)
         btnBack = findViewById(R.id.btn_back)
         btnAddWidget = findViewById(R.id.btn_add_widget)
+        switchScheduledRefresh = findViewById(R.id.switch_scheduled_refresh)
+        tvScheduledRefreshDesc = findViewById(R.id.tv_scheduled_refresh_desc)
         
         // 设置返回按钮
         btnBack.setOnClickListener {
@@ -147,6 +156,15 @@ class SettingsActivity : AppCompatActivity() {
         btnAddWidget.setOnClickListener {
             navigateToWidgetSelection()
         }
+        
+        // 设置开关状态变化监听
+        switchScheduledRefresh.setOnCheckedChangeListener { _, isChecked ->
+            tvScheduledRefreshDesc.text = if (isChecked) {
+                "每天晚上23:50和早上0:0:1自动查询电量"
+            } else {
+                "关闭自动定时查询电量"
+            }
+        }
     }
     
     private fun showBuildingSelectorDialog() {
@@ -177,6 +195,15 @@ class SettingsActivity : AppCompatActivity() {
         val lowBalanceThreshold = viewModel.getLowBalanceThreshold()
         seekBarLowBalanceThreshold.progress = lowBalanceThreshold.toInt()
         tvLowBalanceThreshold.text = "${lowBalanceThreshold}元"
+        
+        // 加载定时刷新设置
+        val isScheduledRefreshEnabled = viewModel.isScheduledRefreshEnabled()
+        switchScheduledRefresh.isChecked = isScheduledRefreshEnabled
+        tvScheduledRefreshDesc.text = if (isScheduledRefreshEnabled) {
+            "每天晚上23:50和早上0:0:1自动查询电量"
+        } else {
+            "关闭自动定时查询电量"
+        }
     }
     
     private fun saveSettings() {
@@ -198,6 +225,29 @@ class SettingsActivity : AppCompatActivity() {
         // 保存低余额警告阈值
         val lowBalanceThreshold = seekBarLowBalanceThreshold.progress.toFloat()
         viewModel.updateLowBalanceThreshold(lowBalanceThreshold)
+        
+        // 保存定时刷新设置
+        val isScheduledRefreshEnabled = switchScheduledRefresh.isChecked
+        viewModel.updateScheduledRefreshEnabled(isScheduledRefreshEnabled)
+        
+        // 根据设置启用或禁用定时任务
+        if (isScheduledRefreshEnabled) {
+            // 重启定时任务以确保设置生效
+            WorkManager.getInstance(this).cancelUniqueWork("electricity_daily_work")
+            val dailyWorkRequest = PeriodicWorkRequestBuilder<ElectricityScheduledWorker>(
+                15, TimeUnit.MINUTES
+            ).build()
+            WorkManager.getInstance(this).enqueueUniquePeriodicWork(
+                "electricity_daily_work",
+                ExistingPeriodicWorkPolicy.UPDATE,
+                dailyWorkRequest
+            )
+            Toast.makeText(this, "已启用定时刷新电量", Toast.LENGTH_SHORT).show()
+        } else {
+            // 取消定时任务
+            WorkManager.getInstance(this).cancelUniqueWork("electricity_daily_work")
+            Toast.makeText(this, "已关闭定时刷新电量", Toast.LENGTH_SHORT).show()
+        }
         
         Toast.makeText(this, "设置已保存", Toast.LENGTH_SHORT).show()
         finish()

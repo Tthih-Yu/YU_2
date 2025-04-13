@@ -376,24 +376,31 @@ class ScheduleActivity : AppCompatActivity() {
                     .defaultMinSize(minHeight = 60.dp) // 确保最小高度
             ) {
                 if (courses.isEmpty()) {
-                    // 空闲时段 - 更轻量的视觉
-                    Box(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(RoundedCornerShape(12.dp))
-                            .background(MatchaCardBg.copy(alpha = 0.5f)) // 使用半透明背景
-                            .border(
-                                width = 1.dp,
-                                color = MatchaDivider, // 边框颜色更柔和
-                                shape = RoundedCornerShape(12.dp)
-                            ),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Text(
-                            text = "空闲",
-                            color = MatchaTextHint, // 使用提示文字颜色
-                            fontSize = 14.sp
+                    // 空闲时段 - 更美观的卡片样式
+                    Card(
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedCornerShape(12.dp),
+                        colors = CardDefaults.cardColors(
+                            containerColor = MatchaCardBg // 使用卡片背景色
+                        ),
+                        border = BorderStroke(1.dp, MatchaDivider), // 添加边框
+                        elevation = CardDefaults.cardElevation(
+                            defaultElevation = 0.dp // 移除阴影
                         )
+                    ) {
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(vertical = 16.dp), // 增加垂直内边距，使卡片看起来更充实
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Text(
+                                text = "空闲时间",
+                                color = MatchaTextHint,
+                                fontSize = 14.sp,
+                                fontWeight = FontWeight.Normal
+                            )
+                        }
                     }
                 } else {
                     // 有课程时段 - 使用 Card

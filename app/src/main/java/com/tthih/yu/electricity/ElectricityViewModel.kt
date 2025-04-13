@@ -404,24 +404,24 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
     }
     
     fun updateJsessionId(jsessionId: String) {
-        repository.saveJsessionId(jsessionId)
+        repository.updateJsessionId(jsessionId)
         _isJsessionIdSet.value = jsessionId.isNotEmpty()
     }
     
     fun updateBuilding(building: String) {
-        repository.saveCurrentBuilding(building)
+        repository.updateBuilding(building)
     }
     
-    fun updateRoom(room: String) {
-        repository.saveRoomId(room)
+    fun updateRoom(roomId: String) {
+        repository.updateRoomId(roomId)
     }
     
-    fun updateRefreshInterval(minutes: Int) {
-        repository.saveRefreshInterval(minutes)
+    fun updateRefreshInterval(interval: Int) {
+        repository.updateRefreshInterval(interval)
     }
     
     fun updateLowBalanceThreshold(threshold: Float) {
-        repository.saveLowBalanceThreshold(threshold)
+        repository.updateLowBalanceThreshold(threshold)
     }
     
     // 获取设置相关方法
@@ -458,5 +458,15 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
                 _errorMessage.value = "清除历史数据失败"
             }
         }
+    }
+    
+    // 添加在Repository类中获取定时刷新设置的方法
+    fun isScheduledRefreshEnabled(): Boolean {
+        return repository.isScheduledRefreshEnabled()
+    }
+    
+    // 添加在Repository类中更新定时刷新设置的方法
+    fun updateScheduledRefreshEnabled(enabled: Boolean) {
+        repository.updateScheduledRefreshEnabled(enabled)
     }
 } 

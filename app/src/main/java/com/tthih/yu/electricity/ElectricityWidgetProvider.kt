@@ -15,10 +15,8 @@ import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
-import androidx.work.PeriodicWorkRequestBuilder
-import androidx.work.ExistingPeriodicWorkPolicy
+import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
-import java.util.concurrent.TimeUnit
 import android.view.View
 import android.graphics.Color
 import kotlinx.coroutines.withContext
@@ -43,16 +41,14 @@ class ElectricityWidgetProvider : AppWidgetProvider() {
         // 当第一次放置小部件时调用
         Log.d(TAG, "onEnabled 被调用，第一个小部件被添加")
         super.onEnabled(context)
-        // 启动定期更新服务
-        startWidgetUpdateWork(context)
+        // 立即更新一次小部件
+        updateAllWidgets(context)
     }
     
     override fun onDisabled(context: Context) {
         // 当最后一个小部件实例被删除时调用
         Log.d(TAG, "onDisabled 被调用，最后一个小部件被移除")
         super.onDisabled(context)
-        // 取消定期更新服务
-        WorkManager.getInstance(context).cancelUniqueWork(WIDGET_UPDATE_WORK)
     }
     
     override fun onReceive(context: Context, intent: Intent) {
@@ -74,12 +70,14 @@ class ElectricityWidgetProvider : AppWidgetProvider() {
                 Log.d(TAG, "刷新所有小部件")
                 updateAllWidgets(context)
             }
+            
+            // 触发立即刷新
+            triggerImmediateRefresh(context)
         }
     }
     
     companion object {
         const val ACTION_REFRESH = "com.tthih.yu.electricity.ACTION_REFRESH_WIDGET"
-        private const val WIDGET_UPDATE_WORK = "electricity_widget_update_work"
         
         // 添加updateAllWidgets方法
         fun updateAllWidgets(context: Context) {
@@ -95,21 +93,16 @@ class ElectricityWidgetProvider : AppWidgetProvider() {
             }
         }
         
-        // 启动定期更新任务
-        fun startWidgetUpdateWork(context: Context) {
-            Log.d("ElectricityWidget", "startWidgetUpdateWork 被调用")
-            val updateRequest = PeriodicWorkRequestBuilder<ElectricityWidgetWorker>(
-                3, TimeUnit.HOURS
-            ).build()
+        // 手动触发立即刷新
+        fun triggerImmediateRefresh(context: Context) {
+            Log.d("ElectricityWidget", "手动触发立即刷新")
             
-            WorkManager.getInstance(context).enqueueUniquePeriodicWork(
-                WIDGET_UPDATE_WORK,
-                ExistingPeriodicWorkPolicy.UPDATE,
-                updateRequest
-            )
-            
-            // 立即更新一次小部件
-            updateAllWidgets(context)
+            // 创建一次性工作请求来刷新电费数据
+            val refreshWork = OneTimeWorkRequestBuilder<ElectricityScheduledWorker>()
+                .build()
+                
+            // 立即执行
+            WorkManager.getInstance(context).enqueue(refreshWork)
         }
         
         // 更新小部件显示
