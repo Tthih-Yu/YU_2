@@ -32,7 +32,7 @@ class QQGroupActivity : AppCompatActivity() {
     private val TAG = "QQGroupActivity"
 
     // QQ群号，可以根据实际情况修改
-    private val qqGroupNumber = "2190638246"
+    private val qqGroupNumber = "747802286"
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -116,7 +116,7 @@ class QQGroupActivity : AppCompatActivity() {
                     try {
                         // 使用新的链接格式
                         val intent = Intent(Intent.ACTION_VIEW)
-                        intent.data = Uri.parse("https://res.abeim.cn/api-qq?qq=2190638246")
+                        intent.data = Uri.parse("http://qm.qq.com/cgi-bin/qm/qr?_wv=1027&k=sUzw30GTwMuL87H3oG-dZTU4XxWlPzcH&authKey=pPtmzM4bP6M2%2F6ktsy%2FfXWBKSGIc2dGG0Td5bCqHO4D3f3mtqVLdwICUgBbgNRDO&noverify=0&group_code=747802286")
                         startActivity(intent)
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to open URL: ${e.message}", e)

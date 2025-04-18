@@ -3,8 +3,6 @@
  * @：人工智能222万世杰
  * @Date: 2024-04-11 
  * @LastEditTime: 2024-07-7 21:57:50
- * @LastEditors: xiaoxiao
- * @Description: 苦心编写多日，参考了大佬模板
  * @QQ：2190638246
  * https://github.com/wanshijie1
  */

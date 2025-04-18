@@ -6,12 +6,27 @@
 ## 主要功能
 
 ### 宿舍电费监控
-- **实时查询**: 查询宿舍剩余电量
-- **数据分析**: 统计日均用电量，预估剩余可用天数
-- **历史记录**: 记录并展示电费使用历史，支持日历视图
-- **自定义设置**: 可设置宿舍楼栋、房间号和刷新间隔
-- **数据可视化**: 直观展示用电趋势和消费情况
-- **桌面小部件**: 支持在桌面添加小组件，实时显示电量余额和预计剩余天数
+- **实时查询**: 查询宿舍剩余电量，支持自定义刷新间隔
+- **智能数据分析**: 
+  - 多层次分析：短期(7天)、中期(30天)和长期(90天)数据综合分析
+  - 季节性调整：根据春夏秋冬不同季节自动调整用电预测
+  - 充值模式识别：在常规数据不足时，通过充值频率和金额分析用电习惯
+- **精确预测**: 
+  - 动态预测剩余可用天数，考虑季节变化因素
+  - 智能权重合成，优先使用短期数据，提高预测准确性
+- **趋势分析**:
+  - 分析用电趋势（增加、减少、稳定）及变化百分比
+  - 提供个性化用电建议和节电提醒
+- **历史记录**: 
+  - 记录并展示电费使用历史，支持日历视图
+  - 自动识别充值记录和用电模式变化
+- **异常处理**:
+  - 数据不足时智能估算
+  - 考虑充值情况对用电量计算的影响
+- **定时记录**: 每日在关键时间点（23:50和00:00:01）自动记录电费数据
+- **桌面小部件**: 
+  - 支持在桌面添加小组件，实时显示电量余额和预计剩余天数
+  - 每3小时自动更新，保持数据时效性
 
 ### 课表查询
 - **个人课表**: 获取和显示个人课程表
@@ -54,16 +69,56 @@ app/                                    # 应用程序主目录
 │   │   │   │   ├── ElectricityHistoryActivity.kt   # 电费历史记录界面
 │   │   │   │   ├── ElectricityViewModel.kt         # 电费视图模型
 │   │   │   │   ├── ElectricityRepository.kt        # 电费数据仓库
+│   │   │   │   ├── ElectricityDatabase.kt          # 电费本地数据库定义
+│   │   │   │   ├── ElectricityData.kt              # 电费数据模型
+│   │   │   │   ├── ElectricityHistoryData.kt       # 电费历史记录数据模型
+│   │   │   │   ├── ElectricityDao.kt               # 电费数据访问对象
+│   │   │   │   ├── ElectricityHistoryDao.kt        # 电费历史记录数据访问对象
+│   │   │   │   ├── ElectricityScheduledWorker.kt   # 定时电费数据记录工作
 │   │   │   │   ├── ElectricityWidgetProvider.kt    # 电费桌面小部件提供者
-│   │   │   │   └── ElectricityWidgetWorker.kt      # 电费小部件更新工作类
+│   │   │   │   ├── ElectricityWidgetWorker.kt      # 电费小部件更新工作类
+│   │   │   │   └── ElectricityApplication.kt       # 电费应用程序组件
 │   │   │   ├── schedule/                # 课表相关功能模块
 │   │   │   │   ├── ScheduleActivity.kt             # 课表主界面
-│   │   │   │   └── ScheduleViewModel.kt            # 课表视图模型
+│   │   │   │   ├── ScheduleViewModel.kt            # 课表视图模型
+│   │   │   │   ├── ScheduleRepository.kt           # 课表数据仓库
+│   │   │   │   ├── ScheduleDatabase.kt             # 课表本地数据库定义
+│   │   │   │   ├── ScheduleData.kt                 # 课表数据模型
+│   │   │   │   ├── ScheduleDao.kt                  # 课表数据访问对象
+│   │   │   │   ├── ScheduleWorker.kt               # 课表定时更新工作类
+│   │   │   │   ├── ScheduleWidget.kt               # 课表桌面小部件
+│   │   │   │   └── ScheduleNotification.kt         # 课程提醒通知服务
 │   │   │   ├── campuscard/              # 校园卡相关功能模块
-│   │   │   │   ├── CampusCardActivity.kt           # 校园卡主界面 
-│   │   │   │   └── CampusCardViewModel.kt          # 校园卡视图模型
+│   │   │   │   ├── CampusCardActivity.kt           # 校园卡主界面
+│   │   │   │   ├── CampusCardViewModel.kt          # 校园卡视图模型
+│   │   │   │   ├── CampusCardComponents.kt         # 校园卡UI组件集合
+│   │   │   │   ├── CampusCardRepository.kt         # 校园卡数据仓库
+│   │   │   │   ├── CampusCardDatabase.kt           # 校园卡本地数据库定义
+│   │   │   │   ├── CampusCardTransaction.kt        # 校园卡交易数据模型
+│   │   │   │   ├── CampusCardDao.kt                # 校园卡数据访问对象
+│   │   │   │   ├── CampusCardAnalytics.kt          # 消费数据分析工具
+│   │   │   │   └── CampusCardChart.kt              # 自定义图表组件
 │   │   │   ├── component/               # 共用组件
-│   │   │   │   └── Components.kt                    # 通用UI组件
+│   │   │   │   ├── NetworkUtil.kt                  # 网络工具类
+│   │   │   │   ├── LocalStorage.kt                 # 本地存储工具
+│   │   │   │   ├── DateTimeUtil.kt                 # 日期时间工具
+│   │   │   │   ├── PermissionUtil.kt               # 权限管理工具
+│   │   │   │   ├── NotificationUtil.kt             # 通知工具类
+│   │   │   │   ├── EncryptionUtil.kt               # 加密工具
+│   │   │   │   ├── UIComponents.kt                 # 通用UI组件集合
+│   │   │   │   └── ErrorHandler.kt                 # 错误处理工具
+│   │   │   ├── main/                    # 主界面相关
+│   │   │   │   ├── MainActivity.kt                 # 主活动
+│   │   │   │   ├── MainViewModel.kt                # 主界面视图模型
+│   │   │   │   ├── SplashActivity.kt               # 启动页面实现
+│   │   │   │   └── LoginActivity.kt                # 登录界面实现
+│   │   │   ├── about/                   # 关于页面功能
+│   │   │   │   ├── AboutActivity.kt                # 关于页面活动类
+│   │   │   │   ├── UpdateChecker.kt                # 应用更新检查器
+│   │   │   │   ├── FeedbackManager.kt              # 用户反馈管理器
+│   │   │   │   ├── PrivacyPolicyActivity.kt        # 隐私政策展示页面
+│   │   │   │   ├── TermsActivity.kt                # 使用条款展示页面
+│   │   │   │   └── DeveloperInfoActivity.kt        # 开发者信息展示页面
 │   │   │   ├── ui/                      # UI相关组件
 │   │   │   │   └── theme/                           # 主题相关
 │   │   │   │       ├── Color.kt                     # 颜色定义
@@ -81,19 +136,34 @@ app/                                    # 应用程序主目录
 │   │       │   ├── ic_schedule.xml                  # 课表图标
 │   │       │   ├── ic_card.xml                      # 校园卡图标
 │   │       │   ├── ic_library.xml                   # 图书馆图标
+│   │       │   ├── ic_update.xml                    # 更新图标
+│   │       │   ├── ic_feedback.xml                  # 反馈图标
+│   │       │   ├── card_background.xml              # 卡片背景
 │   │       │   └── widget_gradient_background.xml   # 小部件渐变背景
 │   │       ├── layout/                  # 布局文件
+│   │       │   ├── activity_main.xml                # 主页面布局
+│   │       │   ├── activity_login.xml               # 登录页面布局
+│   │       │   ├── activity_splash.xml              # 启动页面布局
 │   │       │   ├── activity_about.xml               # 关于页面布局
+│   │       │   ├── activity_privacy_policy.xml      # 隐私政策页面布局
+│   │       │   ├── activity_terms.xml               # 使用条款页面布局
 │   │       │   ├── activity_electricity.xml         # 电费页面布局
+│   │       │   ├── activity_electricity_history.xml # 电费历史页面布局
 │   │       │   ├── electricity_widget.xml           # 电费小部件布局
-│   │       │   └── activity_schedule.xml            # 课表页面布局
+│   │       │   ├── activity_schedule.xml            # 课表页面布局
+│   │       │   ├── schedule_widget.xml              # 课表小部件布局
+│   │       │   ├── activity_campus_card.xml         # 校园卡页面布局
+│   │       │   ├── item_transaction.xml             # 交易项布局
+│   │       │   └── dialog_feedback.xml              # 反馈对话框布局
 │   │       ├── values/                  # 值资源
 │   │       │   ├── colors.xml                       # 颜色资源
 │   │       │   ├── strings.xml                      # 字符串资源
 │   │       │   ├── styles.xml                       # 样式资源
+│   │       │   ├── dimens.xml                       # 尺寸资源
 │   │       │   └── themes.xml                       # 主题资源
 │   │       ├── xml/                     # XML配置
 │   │       │   ├── electricity_widget_info.xml      # 电费小部件信息配置
+│   │       │   ├── schedule_widget_info.xml         # 课表小部件信息配置
 │   │       │   ├── network_security_config.xml      # 网络安全配置
 │   │       │   ├── backup_rules.xml                 # 备份规则配置
 │   │       │   └── data_extraction_rules.xml        # 数据提取规则
@@ -101,56 +171,96 @@ app/                                    # 应用程序主目录
 │   │           ├── ic_launcher.png                  # 应用图标（各分辨率）
 │   │           └── ic_launcher_round.png            # 圆形应用图标
 │   ├── androidTest/                     # Android测试目录
-│   │   └── java/                        # 测试代码
+│   │   └── java/com/tthih/yu/test/      # 测试代码
+│   │       ├── ElectricityTest.kt                   # 电费模块测试
+│   │       ├── ScheduleTest.kt                      # 课表模块测试
+│   │       └── CampusCardTest.kt                    # 校园卡模块测试
 │   └── test/                            # 单元测试目录
-│       └── java/                        # 测试代码
+│       └── java/com/tthih/yu/unittest/  # 单元测试代码
+│           ├── RepositoryTest.kt                    # 数据仓库测试
+│           ├── ViewModelTest.kt                     # 视图模型测试
+│           └── UtilTest.kt                          # 工具类测试
 ├── build.gradle.kts                     # 应用级Gradle构建脚本
-└── proguard-rules.pro                   # ProGuard规则配置
+├── proguard-rules.pro                   # ProGuard规则配置
+└── README.md                            # 项目说明文档
 ```
 
 ### 模块详解
 
 #### 电费模块 (`electricity/`)
-- **ElectricityActivity.kt**: 电费查询主界面实现
-- **ElectricityHistoryActivity.kt**: 电费历史记录界面实现
-- **ElectricityViewModel.kt**: 电费数据视图模型，处理业务逻辑
-- **ElectricityRepository.kt**: 电费数据仓库，处理数据获取和存储
-- **ElectricityDatabase.kt**: 电费本地数据库定义
-- **ElectricityData.kt**: 电费数据模型
-- **ElectricityHistoryData.kt**: 电费历史记录数据模型
+- **ElectricityActivity.kt**: 电费查询主界面实现，显示余额、日均用电量、预计可用天数和用电趋势
+- **ElectricityHistoryActivity.kt**: 电费历史记录界面实现，支持日历视图和数据统计
+- **ElectricityViewModel.kt**: 电费数据视图模型，处理业务逻辑和数据分析
+- **ElectricityRepository.kt**: 电费数据仓库，处理数据获取、存储和智能分析算法实现
+  - 包含多层次分析算法（短期、中期、长期）
+  - 实现季节性调整和充值模式识别
+  - 提供智能预测和趋势分析
+- **ElectricityDatabase.kt**: 电费本地数据库定义，使用Room实现
+- **ElectricityData.kt**: 电费数据模型，存储当前电费信息
+- **ElectricityHistoryData.kt**: 电费历史记录数据模型，用于统计和趋势分析
 - **ElectricityDao.kt/ElectricityHistoryDao.kt**: 数据访问对象，定义数据库操作
-- **BuildingSelectorDialog.kt**: 宿舍楼栋选择对话框
-- **SettingsActivity.kt**: 电费设置界面
-- **CalendarDayAdapter.kt**: 历史记录日历视图适配器
-- **DateConverter.kt**: 日期转换工具类
-- **ElectricityWidgetProvider.kt**: 电费桌面小部件提供者
-- **ElectricityWidgetWorker.kt**: 电费小部件后台更新工作类
+- **ElectricityScheduledWorker.kt**: 定时执行电费数据记录工作，在特定时间点（23:50和00:00:01）自动保存数据
+- **ElectricityWidgetProvider.kt**: 电费桌面小部件提供者，显示实时电费信息
+- **ElectricityWidgetWorker.kt**: 电费小部件后台更新工作类，每3小时自动刷新一次
+- **ElectricityApplication.kt**: 应用程序组件，负责初始化和配置电费工作管理器
 
 #### 课表模块 (`schedule/`)
-- **ScheduleActivity.kt**: 课表查询主界面实现
-- **ScheduleViewModel.kt**: 课表数据视图模型
-- **ScheduleRepository.kt**: 课表数据仓库
-- **ScheduleDatabase.kt**: 课表本地数据库定义
-- **ScheduleData.kt**: 课表数据模型
-- **ScheduleDao.kt**: 课表数据访问对象
+- **ScheduleActivity.kt**: 课表查询主界面实现，显示周课表视图和日课表详情
+- **ScheduleViewModel.kt**: 课表数据视图模型，处理课程数据加载和转换
+- **ScheduleRepository.kt**: 课表数据仓库，负责从网络或本地获取课表数据
+  - 实现教务系统API接口对接
+  - 处理课表数据的解析和格式化
+  - 管理本地缓存与同步
+- **ScheduleDatabase.kt**: 课表本地数据库定义，使用Room实现
+- **ScheduleData.kt**: 课表数据模型，包含课程名称、时间、地点、教师等信息
+- **ScheduleDao.kt**: 课表数据访问对象，定义数据库操作
+- **ScheduleWorker.kt**: 定时后台更新课表的工作类，确保课表数据及时更新
+- **ScheduleWidget.kt**: 课表桌面小部件，显示当日课程
+- **ScheduleNotification.kt**: 课程提醒通知服务，在课前发送提醒
 
 #### 校园卡模块 (`campuscard/`)
-- **CampusCardActivity.kt**: 校园卡管理主界面实现
-- **CampusCardViewModel.kt**: 校园卡数据视图模型
-- **CampusCardComponents.kt**: 校园卡UI组件集合
+- **CampusCardActivity.kt**: 校园卡管理主界面实现，显示余额、消费记录和充值入口
+- **CampusCardViewModel.kt**: 校园卡数据视图模型，处理数据加载和分析
+- **CampusCardComponents.kt**: 校园卡UI组件集合，包含自定义卡片视图和消费记录项
 - **CampusCardRepository.kt**: 校园卡数据仓库
-- **CampusCardDatabase.kt**: 校园卡本地数据库定义
-- **CampusCardTransaction.kt**: 校园卡交易数据模型
-- **CampusCardDao.kt**: 校园卡数据访问对象
+  - 对接校园卡系统API
+  - 处理消费数据的分类和统计
+  - 管理本地缓存与同步
+- **CampusCardDatabase.kt**: 校园卡本地数据库定义，使用Room实现
+- **CampusCardTransaction.kt**: 校园卡交易数据模型，记录交易时间、金额、类型和地点
+- **CampusCardDao.kt**: 校园卡数据访问对象，定义数据库操作
+- **CampusCardAnalytics.kt**: 消费数据分析工具，生成消费趋势和分类统计
+- **CampusCardChart.kt**: 自定义图表组件，可视化展示消费数据
 
 #### 通用组件 (`component/`)
-- **timer.js**: 定时器实现
-- **provider.js**: 数据提供者实现
-- **parser.js**: 数据解析工具
+- **NetworkUtil.kt**: 网络工具类，处理HTTP请求和响应
+- **LocalStorage.kt**: 本地存储工具，管理SharedPreferences和加密数据
+- **DateTimeUtil.kt**: 日期时间工具，提供各种日期格式化和计算函数
+- **PermissionUtil.kt**: 权限管理工具，简化权限请求和检查流程
+- **NotificationUtil.kt**: 通知工具类，创建和管理应用内通知
+- **EncryptionUtil.kt**: 加密工具，保护敏感数据
+- **UIComponents.kt**: 通用UI组件集合，包括加载指示器、对话框等
+- **ErrorHandler.kt**: 错误处理工具，统一处理异常情况
 
-#### 其他关键文件
-- **MainActivity.kt**: 应用程序主入口，负责导航和管理主页面
-- **源码目录**: 包含学校各系统接口的请求和响应样本，用于开发和测试
+#### 主界面实现 (`main/`)
+- **MainActivity.kt**: 应用程序主入口和导航中心
+  - 实现底部导航栏和功能选择
+  - 处理模块间的导航和数据传递
+  - 管理应用全局状态
+- **MainViewModel.kt**: 主界面视图模型，处理共享数据和全局事件
+- **SplashActivity.kt**: 启动页面实现，处理初始化和登录状态检查
+- **LoginActivity.kt**: 登录界面实现，支持账号密码和指纹验证
+
+#### 关于页面功能 (`about/`)
+- **AboutActivity.kt**: 关于页面的主要活动类
+  - 显示应用版本信息和开发者联系方式
+  - 处理检查更新、隐私政策查看等功能
+  - 实现分享应用和反馈建议渠道
+- **UpdateChecker.kt**: 应用更新检查器，检测新版本并提示下载
+- **FeedbackManager.kt**: 用户反馈管理器，收集和提交用户反馈
+- **PrivacyPolicyActivity.kt**: 隐私政策展示页面
+- **TermsActivity.kt**: 使用条款展示页面
+- **DeveloperInfoActivity.kt**: 开发者信息展示页面
 
 ## 系统要求
 - Android 8.0 (API级别26)或更高版本
@@ -196,17 +306,28 @@ app/                                    # 应用程序主目录
 
 ## 更新日志
 ### v1.1.0 (当前版本)
+- **电费功能升级**:
+  - 全新智能电费分析系统，支持多层次数据分析
+  - 优化季节性调整算法，提高预测准确性
+  - 新增趋势分析功能，直观显示用电变化
+  - 增强异常情况处理，提供更可靠的预测
 - 新增电费桌面小部件功能，实时显示电量余额和预计剩余天数
 - 优化小部件自动更新机制，确保数据时效性
 - 改进UI界面，提供更好的用户体验
 
 ### v1.0.0
-- 实现宿舍电费查询和历史记录功能
+- 实现宿舍电费查询和基础历史记录功能
 - 新增课表查询功能
 - 添加校园卡管理功能
 - 优化UI界面和用户体验
 
 ### 未来计划
+- **电费功能增强**:
+  - 添加机器学习模型，提高用电预测准确性
+  - 集成气温数据，优化季节性预测
+  - 提供用电行为模式识别（周末vs工作日模式）
+  - 增加更丰富的数据可视化图表，支持同比/环比分析
+  - 智能充值提醒功能，基于预测准确推送通知
 - 增加图书馆服务功能
 - 添加校园通知和公告集成
 - 实现校园卡在线充值功能

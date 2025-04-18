@@ -1,29 +1,21 @@
 package com.tthih.yu.campuscard
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
+// Display for Consumption Trend
 @Composable
 fun ConsumeTrendDisplay(trend: ConsumeTrend?) {
     if (trend == null || trend.dates.isEmpty() || trend.amounts.isEmpty()) {
@@ -38,400 +30,202 @@ fun ConsumeTrendDisplay(trend: ConsumeTrend?) {
         }
         return
     }
-    
-    // 数据准备
-    val dates = trend.dates
-    val amounts = trend.amounts
-    val maxAmount = trend.maxAmount
-    
+
     Column(
         modifier = Modifier
-            .fillMaxWidth()
+            .fillMaxSize()
             .padding(16.dp)
     ) {
-        // 消费趋势统计
+        // Statistics Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(bottom = 16.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(16.dp)
-            ) {
-                Text(
-                    text = "消费趋势统计",
-                    style = MaterialTheme.typography.titleMedium
-                )
-                Spacer(modifier = Modifier.height(8.dp))
-                
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Column {
-                        Text(
-                            text = "总消费",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "￥${trend.totalAmount.format(2)}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
-                    Column {
-                        Text(
-                            text = "最高单日",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "￥${trend.maxAmount.format(2)}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-                    
-                    Column {
-                        Text(
-                            text = "日均消费",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "￥${trend.averageAmount.format(2)}",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
+            Column(modifier = Modifier.padding(16.dp)) {
+                Text("消费趋势统计", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(12.dp))
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceAround) {
+                    StatItem("总消费", "￥${trend.totalAmount.format(2)}")
+                    StatItem("最高单日", "￥${trend.maxAmount.format(2)}")
+                    StatItem("日均消费", "￥${trend.averageAmount.format(2)}")
                 }
             }
         }
-        
-        // 图表
+
+        // Chart Card
         Card(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(250.dp),
-            elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
         ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .padding(16.dp)
             ) {
-                Text(
-                    text = "30天消费走势",
-                    style = MaterialTheme.typography.titleMedium,
-                    modifier = Modifier.padding(bottom = 8.dp)
-                )
-                
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .weight(1f)
+                Text("近30天消费走势", style = MaterialTheme.typography.titleMedium)
+                Spacer(modifier = Modifier.height(8.dp))
+                SimpleBarChart(dates = trend.dates, amounts = trend.amounts)
+            }
+        }
+    }
+}
+
+@Composable
+private fun StatItem(label: String, value: String) {
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(value, style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+    }
+}
+
+// Simplified Bar Chart Composable
+@Composable
+fun SimpleBarChart(dates: List<String>, amounts: List<Double>) {
+    val maxAmount = amounts.maxOrNull() ?: 1.0 // Avoid division by zero
+    val displayData = if (dates.size > 15) { // Show max 15 bars for clarity
+        val start = dates.size - 15
+        dates.subList(start, dates.size) to amounts.subList(start, amounts.size)
+    } else {
+        dates to amounts
+    }
+
+    BoxWithConstraints(modifier = Modifier.fillMaxSize()) { // Use BoxWithConstraints for dynamic height
+        val chartHeight = this.maxHeight - 30.dp // Leave space for labels
+        Row(
+            modifier = Modifier.fillMaxSize().padding(top = 8.dp, bottom = 22.dp), // Adjusted padding
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.Bottom
+        ) {
+            displayData.first.forEachIndexed { index, date ->
+                val amount = displayData.second[index]
+                val barHeight = (amount / maxAmount * chartHeight.value).coerceAtLeast(1.0).dp
+                val shortDate = date.takeLast(5) // Format date as needed (e.g., MM-DD)
+
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.weight(1f)
                 ) {
-                    // Y轴标签
-                    Column(
+                    Box(
                         modifier = Modifier
-                            .align(Alignment.CenterStart)
-                            .height(200.dp)
-                            .width(40.dp),
-                        verticalArrangement = Arrangement.SpaceBetween
-                    ) {
-                        Text(
-                            text = maxAmount.format(0),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = (maxAmount / 2).format(0),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = "0",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    
-                    // 图表区域
-                    Row(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .padding(start = 40.dp),
-                        horizontalArrangement = Arrangement.spacedBy(4.dp),
-                        verticalAlignment = Alignment.Bottom
-                    ) {
-                        // 只显示最近的10天数据，如果数据多于10条
-                        val displayData = if (dates.size > 10) {
-                            val startIndex = dates.size - 10
-                            dates.subList(startIndex, dates.size) to amounts.subList(startIndex, amounts.size)
-                        } else {
-                            dates to amounts
-                        }
-                        
-                        displayData.first.forEachIndexed { index, date ->
-                            val amount = displayData.second[index]
-                            val height = if (maxAmount > 0) (amount / maxAmount) * 200 else 0.0
-                            
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .width(20.dp)
-                                        .height(height.toFloat().dp)
-                                        .background(
-                                            color = MaterialTheme.colorScheme.primary,
-                                            shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
-                                        )
-                                )
-                                
-                                // 日期标签 - 只显示日期的最后2位
-                                val shortDate = if (date.contains("-")) {
-                                    date.split("-").last()
-                                } else {
-                                    date.takeLast(2)
-                                }
-                                
-                                Text(
-                                    text = shortDate,
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
-                        }
-                    }
+                            .width(15.dp) // Bar width
+                            .height(barHeight)
+                            .background(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp)
+                            )
+                    )
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text(
+                        text = shortDate,
+                        style = MaterialTheme.typography.labelSmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Visible // Allow slight overflow if needed
+                    )
                 }
             }
         }
     }
 }
 
+// Display for Card Info
 @Composable
 fun CardInfoDisplay(cardInfo: CardInfo) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(16.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+            .padding(horizontal = 16.dp, vertical = 8.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "我的校园卡",
-                style = MaterialTheme.typography.titleLarge,
-                color = MaterialTheme.colorScheme.primary
-            )
-            
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("我的校园卡", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
             Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "卡号",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = cardInfo.cardNumber,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "状态",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = cardInfo.status,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "余额",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "￥${cardInfo.balance.format(2)}",
-                        style = MaterialTheme.typography.titleLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "有效期至",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = cardInfo.expiryDate,
-                        style = MaterialTheme.typography.bodyLarge
-                    )
-                }
-            }
+            InfoRow("卡号", cardInfo.cardNumber)
+            InfoRow("余额", "￥${cardInfo.balance.format(2)}", valueColor = MaterialTheme.colorScheme.tertiary, isBold = true)
+            InfoRow("卡状态", cardInfo.status)
+            // InfoRow("有效期至", cardInfo.expiryDate)
         }
     }
 }
 
+// Display for Monthly Bill Summary
 @Composable
-fun MonthBillSummary(bill: MonthBill) {
+fun MonthBillSummary(monthBill: MonthBill) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
             .padding(horizontal = 16.dp, vertical = 8.dp),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Text(
-                text = "本月账单摘要",
-                style = MaterialTheme.typography.titleMedium,
-                color = MaterialTheme.colorScheme.primary
-            )
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Column {
-                    Text(
-                        text = "总支出",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "￥${bill.totalAmount.format(2)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.error
-                    )
-                }
-                
-                Column {
-                    Text(
-                        text = "总收入",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    Text(
-                        text = "￥${bill.inAmount.format(2)}",
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.tertiary
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun TransactionList(transactions: List<CampusCardTransaction>) {
-    Column {
-        Text(
-            text = "交易记录",
-            style = MaterialTheme.typography.titleMedium,
-            modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp)
-        )
-        
-        LazyColumn {
-            items(transactions) { transaction ->
-                TransactionItem(transaction)
-            }
-        }
-    }
-}
-
-@Composable
-fun TransactionItem(transaction: CampusCardTransaction) {
-    Card(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 4.dp),
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = transaction.description.ifEmpty { transaction.type.ifEmpty { "消费" } },
-                    style = MaterialTheme.typography.bodyLarge
-                )
-                
-                Text(
-                    text = if (transaction.amount < 0) "￥${transaction.amount.format(2)}" else "+￥${transaction.amount.format(2)}",
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (transaction.amount < 0) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.tertiary
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Text(
-                    text = transaction.location,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Text(
-                    text = "余额: ￥${transaction.balance.format(2)}",
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            
-            Text(
-                text = transaction.time,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = 4.dp)
-            )
+        Column(modifier = Modifier.padding(16.dp)) {
+            Text("本月账单概览", style = MaterialTheme.typography.titleMedium)
+            Spacer(modifier = Modifier.height(12.dp))
+            InfoRow("总支出", "￥${monthBill.totalAmount.format(2)}", valueColor = MaterialTheme.colorScheme.error)
+            InfoRow("总收入", "+ ￥${monthBill.inAmount.format(2)}", valueColor = Color(0xFF4CAF50)) // Green color for income
         }
     }
 }
 
-// 扩展函数，格式化Double为指定小数位数的字符串
-fun Double.format(digits: Int): String = String.format("%.${digits}f", this) 
+@Composable
+private fun InfoRow(label: String, value: String, valueColor: Color = LocalContentColor.current, isBold: Boolean = false) {
+    Row(modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp)) {
+        Text(
+            text = label,
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.width(80.dp) // Fixed width for label
+        )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.bodyMedium,
+            fontWeight = if (isBold) FontWeight.Bold else FontWeight.Normal,
+            color = valueColor,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+// Display for a list of transactions (Used within LazyColumn in Activity)
+@Composable
+fun TransactionItem(transaction: CampusCardTransaction) {
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 16.dp, vertical = 8.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = transaction.description,
+                    style = MaterialTheme.typography.bodyLarge,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Spacer(modifier = Modifier.height(2.dp))
+                Text(
+                    text = transaction.time, // Already formatted time
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Text(
+                text = if (transaction.amount >= 0) "+${transaction.amount.format(2)}" else transaction.amount.format(2),
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium,
+                color = if (transaction.amount >= 0) Color(0xFF4CAF50) else MaterialTheme.colorScheme.error
+            )
+        }
+        Divider(modifier = Modifier.padding(top = 8.dp))
+    }
+}
+
+// Helper extension for Double formatting (moved to DataModels file, kept here for reference if needed)
+// fun Double?.format(digits: Int): String = String.format("%.${digits}f", this ?: 0.0) 

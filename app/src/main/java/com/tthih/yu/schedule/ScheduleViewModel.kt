@@ -29,6 +29,12 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
     // 开学日期
     val startDate = MutableLiveData<Date>()
     
+    // 是否使用手动设置的周数
+    val isUsingManualWeek = MutableLiveData<Boolean>()
+    
+    // 当前选择的作息时间类型
+    val timeScheduleType = MutableLiveData<Int>()
+    
     // 选中的日期
     val selectedDate = MutableLiveData<Date>()
     
@@ -54,6 +60,8 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
         currentWeek.value = repository.getCurrentWeek()
         totalWeeks.value = repository.getTotalWeeks()
         startDate.value = repository.getStartDate()
+        isUsingManualWeek.value = repository.isUsingManualWeek()
+        timeScheduleType.value = repository.getTimeScheduleType()
         selectedWeek.value = currentWeek.value
     }
     
@@ -148,12 +156,14 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
         repository.setStartDate(date)
         startDate.value = date
         
-        // 重新计算当前周次
-        currentWeek.value = repository.getCurrentWeek()
-        selectedWeek.value = currentWeek.value
+        // 如果没有使用手动周数，则重新计算当前周次
+        if (isUsingManualWeek.value != true) {
+            currentWeek.value = repository.getCurrentWeek()
+            selectedWeek.value = currentWeek.value
+        }
         
         // 重新加载课程
-        loadWeekSchedules(currentWeek.value ?: 1)
+        loadWeekSchedules(selectedWeek.value ?: 1)
     }
     
     // 手动设置当前周次
@@ -161,9 +171,23 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
         repository.setCurrentWeek(week)
         currentWeek.value = week
         selectedWeek.value = week
+        isUsingManualWeek.value = true
         
         // 重新加载课程
         loadWeekSchedules(week)
+    }
+    
+    // 重置为自动计算周数模式
+    fun resetToAutoWeekMode() {
+        repository.resetToAutoWeekMode()
+        isUsingManualWeek.value = false
+        
+        // 重新获取当前周次
+        currentWeek.value = repository.getCurrentWeek()
+        selectedWeek.value = currentWeek.value
+        
+        // 重新加载课程
+        loadWeekSchedules(currentWeek.value ?: 1)
     }
     
     // 设置总周数
@@ -240,5 +264,28 @@ class ScheduleViewModel(application: Application) : AndroidViewModel(application
     // 获取课程节次时间配置
     fun getTimeNodes(): List<ScheduleTimeNode> {
         return repository.getTimeNodes()
+    }
+    
+    // 设置作息时间表类型
+    fun setTimeScheduleType(type: Int) {
+        repository.setTimeScheduleType(type)
+        timeScheduleType.value = type
+    }
+    
+    // 获取所有作息时间表类型
+    fun getTimeScheduleTypes(): List<Pair<Int, String>> {
+        return listOf(
+            Pair(ScheduleRepository.TIME_SCHEDULE_730, "早7:40开始"),
+            Pair(ScheduleRepository.TIME_SCHEDULE_800, "早8:00开始")
+        )
+    }
+    
+    // 根据类型获取作息时间类型名称
+    fun getTimeScheduleTypeName(type: Int): String {
+        return when (type) {
+            ScheduleRepository.TIME_SCHEDULE_730 -> "早7:40开始"
+            ScheduleRepository.TIME_SCHEDULE_800 -> "早8:00开始"
+            else -> "未知类型"
+        }
     }
 } 

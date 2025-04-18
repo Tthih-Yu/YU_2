@@ -772,21 +772,32 @@ class ScheduleActivity : AppCompatActivity() {
         val currentWeekState = remember { mutableStateOf(viewModel.currentWeek.value ?: 1) }
         val totalWeeksState = remember { mutableStateOf(viewModel.totalWeeks.value ?: 18) }
         val startDateState = remember { mutableStateOf(viewModel.startDate.value ?: Date()) }
+        val isUsingManualWeekState = remember { mutableStateOf(viewModel.isUsingManualWeek.value ?: false) }
+        val timeScheduleTypeState = remember { mutableStateOf(viewModel.timeScheduleType.value ?: 0) }
+        
+        // 添加时间表类型选择对话框状态
+        var showTimeScheduleTypeDialog by remember { mutableStateOf(false) }
         
         // 添加观察LiveData的代码
         DisposableEffect(viewModel) {
             val currentWeekObserver = Observer<Int> { week -> currentWeekState.value = week ?: 1 }
             val totalWeeksObserver = Observer<Int> { total -> totalWeeksState.value = total ?: 18 }
             val startDateObserver = Observer<Date> { date -> startDateState.value = date ?: Date() }
+            val isUsingManualWeekObserver = Observer<Boolean> { isManual -> isUsingManualWeekState.value = isManual }
+            val timeScheduleTypeObserver = Observer<Int> { type -> timeScheduleTypeState.value = type }
 
             viewModel.currentWeek.observeForever(currentWeekObserver)
             viewModel.totalWeeks.observeForever(totalWeeksObserver)
             viewModel.startDate.observeForever(startDateObserver)
+            viewModel.isUsingManualWeek.observeForever(isUsingManualWeekObserver)
+            viewModel.timeScheduleType.observeForever(timeScheduleTypeObserver)
 
             onDispose {
                 viewModel.currentWeek.removeObserver(currentWeekObserver)
                 viewModel.totalWeeks.removeObserver(totalWeeksObserver)
                 viewModel.startDate.removeObserver(startDateObserver)
+                viewModel.isUsingManualWeek.removeObserver(isUsingManualWeekObserver)
+                viewModel.timeScheduleType.removeObserver(timeScheduleTypeObserver)
             }
         }
         
@@ -794,6 +805,8 @@ class ScheduleActivity : AppCompatActivity() {
         val currentWeek = currentWeekState.value
         val totalWeeks = totalWeeksState.value
         val startDate = startDateState.value
+        val isUsingManualWeek = isUsingManualWeekState.value
+        val timeScheduleType = timeScheduleTypeState.value
         val dateFormat = SimpleDateFormat("yyyy/MM/dd", Locale.getDefault())
 
         // 添加用于输入框的状态 - 使用获取到的值初始化
@@ -802,6 +815,60 @@ class ScheduleActivity : AppCompatActivity() {
         
         // 添加是否修改过的状态
         var isModified by remember { mutableStateOf(false) }
+        
+        // 时间表类型选择对话框
+        if (showTimeScheduleTypeDialog) {
+            AlertDialog(
+                onDismissRequest = { showTimeScheduleTypeDialog = false },
+                title = { Text("选择上课时间", fontSize = 18.sp, fontWeight = FontWeight.Bold) },
+                text = {
+                    Column(
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        viewModel.getTimeScheduleTypes().forEach { (type, name) ->
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable {
+                                        viewModel.setTimeScheduleType(type)
+                                        showTimeScheduleTypeDialog = false
+                                    }
+                                    .padding(vertical = 12.dp),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                RadioButton(
+                                    selected = type == timeScheduleType,
+                                    onClick = { 
+                                        viewModel.setTimeScheduleType(type)
+                                        showTimeScheduleTypeDialog = false
+                                    },
+                                    colors = RadioButtonDefaults.colors(
+                                        selectedColor = MatchaGreen,
+                                        unselectedColor = MatchaTextSecondary
+                                    )
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = name,
+                                    fontSize = 16.sp,
+                                    color = MatchaTextPrimary
+                                )
+                            }
+                        }
+                    }
+                },
+                confirmButton = {
+                    Button(
+                        onClick = { showTimeScheduleTypeDialog = false },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MatchaGreen
+                        )
+                    ) {
+                        Text("关闭")
+                    }
+                }
+            )
+        }
         
         // 使用Scaffold布局来添加FloatingActionButton
         Scaffold(
@@ -888,7 +955,7 @@ class ScheduleActivity : AppCompatActivity() {
                     ) {
                         Column(modifier = Modifier.fillMaxWidth()) {
                             SettingItem(
-                                iconResId = Icons.Filled.DateRange, // 使用 Material Icons
+                                iconResId = Icons.Filled.DateRange,
                                 title = "开学日期",
                                 value = dateFormat.format(startDate),
                                 onClick = { 
@@ -898,11 +965,23 @@ class ScheduleActivity : AppCompatActivity() {
                                     } 
                                 }
                             )
-                            // 修改 当前周数 设置项
+                            
+                            // 添加校区时间表选择
+                            SettingItem(
+                                iconResId = Icons.Filled.AccessTime,
+                                title = "上课时间",
+                                value = viewModel.getTimeScheduleTypeName(timeScheduleType),
+                                onClick = { 
+                                    showTimeScheduleTypeDialog = true
+                                }
+                            )
+                            
+                            // 修改 当前周数 设置项 - 添加自动计算/手动设置状态显示
                             EditableSettingItem(
-                                iconResId = Icons.Filled.ViewWeek, // 使用 Material Icons
+                                iconResId = Icons.Filled.ViewWeek,
                                 title = "当前周数",
                                 value = currentWeekInput,
+                                subtitle = if (isUsingManualWeek) "手动设置" else "自动计算",
                                 onValueChange = { 
                                     currentWeekInput = it 
                                     isModified = true
@@ -913,15 +992,34 @@ class ScheduleActivity : AppCompatActivity() {
                                         viewModel.setCurrentWeek(week)
                                         isModified = false
                                     } else {
-                                        // 输入无效，恢复旧值或提示
                                         currentWeekInput = currentWeek.toString() 
                                         Toast.makeText(this@ScheduleActivity, "请输入有效的周数", Toast.LENGTH_SHORT).show()
                                     }
                                 }
                             )
-                            // 修改 学期总周数 设置项
+                            
+                            // 添加切换周数计算模式的开关
+                            SettingSwitch(
+                                iconResId = Icons.Filled.SyncAlt,
+                                title = "自动计算周数",
+                                subtitle = "根据开学日期自动计算当前周数",
+                                isChecked = !isUsingManualWeek,
+                                onCheckedChange = { autoEnabled ->
+                                    if (autoEnabled) {
+                                        // 切换到自动模式
+                                        viewModel.resetToAutoWeekMode()
+                                        Toast.makeText(this@ScheduleActivity, "已切换到自动计算周数模式", Toast.LENGTH_SHORT).show()
+                                    } else {
+                                        // 切换到手动模式，使用当前周数
+                                        viewModel.setCurrentWeek(currentWeek)
+                                        Toast.makeText(this@ScheduleActivity, "已切换到手动设置周数模式", Toast.LENGTH_SHORT).show()
+                                    }
+                                }
+                            )
+                            
+                            // 修改 学期总周数 设置项 (保持不变)
                             EditableSettingItem(
-                                iconResId = Icons.Filled.CalendarViewMonth, // 换一个更合适的图标
+                                iconResId = Icons.Filled.CalendarViewMonth,
                                 title = "学期总周数",
                                 value = totalWeeksInput,
                                 onValueChange = { 
@@ -930,12 +1028,10 @@ class ScheduleActivity : AppCompatActivity() {
                                 },
                                 onSave = { 
                                     val weeks = it.toIntOrNull()
-                                    // 添加合理范围检查 (e.g., 10-24)
                                     if (weeks != null && weeks in 10..24) { 
                                         viewModel.setTotalWeeks(weeks)
                                         isModified = false
                                     } else {
-                                        // 输入无效，恢复旧值或提示
                                         totalWeeksInput = totalWeeks.toString()
                                         Toast.makeText(this@ScheduleActivity, "总周数应在10-24之间", Toast.LENGTH_SHORT).show()
                                     }
@@ -1645,7 +1741,8 @@ class ScheduleActivity : AppCompatActivity() {
         value: String, 
         onValueChange: (String) -> Unit,
         onSave: (String) -> Unit, // 回调函数，在用户完成输入时调用
-        keyboardType: KeyboardType = KeyboardType.Number // 默认为数字键盘
+        keyboardType: KeyboardType = KeyboardType.Number, // 默认为数字键盘
+        subtitle: String? = null
     ) {
         val focusManager = LocalFocusManager.current
         Row(
@@ -1660,18 +1757,35 @@ class ScheduleActivity : AppCompatActivity() {
                     imageVector = iconResId, 
                     contentDescription = title, 
                     tint = MatchaGreen, 
-                    modifier = Modifier.size(24.dp).padding(end = 12.dp)
+                    modifier = Modifier
+                        .size(24.dp)
+                        .padding(end = 8.dp)
                 )
             }
             
-            // 标题
-            Text(
-                text = title,
-                fontSize = 16.sp,
-                color = MatchaTextPrimary,
-                fontWeight = FontWeight.Normal,
-                modifier = Modifier.weight(1f) // 让标题占据剩余空间
-            )
+            // 标题和副标题列
+            Column(
+                modifier = Modifier.weight(1f)
+            ) {
+                // 标题
+                Text(
+                    text = title,
+                    fontSize = 16.sp,
+                    color = MatchaTextPrimary,
+                    fontWeight = FontWeight.Normal
+                )
+                
+                // 如果有副标题，显示它
+                if (subtitle != null) {
+                    Text(
+                        text = subtitle,
+                        fontSize = 12.sp,
+                        color = MatchaTextSecondary,
+                        fontWeight = FontWeight.Normal,
+                        modifier = Modifier.padding(top = 2.dp)
+                    )
+                }
+            }
             
             // 输入框
             OutlinedTextField(

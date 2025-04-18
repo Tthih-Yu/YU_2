@@ -22,6 +22,17 @@ android {
     buildTypes {
         release {
             isMinifyEnabled = false
+            isShrinkResources = false
+            proguardFiles(
+                getDefaultProguardFile("proguard-android-optimize.txt"),
+                "proguard-rules.pro"
+            )
+        }
+        
+        // 调试版本通常不启用混淆，以便更容易调试
+        debug {
+            isMinifyEnabled = false
+            isShrinkResources = false
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -29,11 +40,11 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
     }
     buildFeatures {
         compose = true
@@ -94,6 +105,20 @@ dependencies {
     // Gson for JSON processing
     implementation("com.google.code.gson:gson:2.10.1")
     
+    // Network
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0") // Or use Moshi
+    implementation("com.squareup.okhttp3:okhttp:4.10.0") // Check for latest version
+    implementation("com.squareup.okhttp3:logging-interceptor:4.10.0") // For debugging
+    implementation("org.jsoup:jsoup:1.15.3") // For parsing HTML (CAS login form)
+
+    // Hilt for Dependency Injection (Optional but recommended)
+    // implementation("com.google.dagger:hilt-android:2.48") // Check latest version
+    // kapt("com.google.dagger:hilt-compiler:2.48")
+
+    // Accompanist SwipeRefresh
+    implementation("com.google.accompanist:accompanist-swiperefresh:0.27.0") // Check latest version
+
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

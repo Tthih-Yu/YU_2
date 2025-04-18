@@ -201,186 +201,193 @@ fun HomeScreen(
     onTodoClick: () -> Unit,
     onAboutClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Color(0xFFF5F5F5)),
-        horizontalAlignment = Alignment.CenterHorizontally
-    ) {
-        // 顶部标题栏
-        TopAppBar(
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        // 学校名称和应用标题
+    // 添加旋转状态
+    var rotationState by remember { mutableStateOf(0f) }
+    val rotation by animateFloatAsState(
+        targetValue = rotationState,
+        animationSpec = tween(durationMillis = 300),
+        label = "rotation"
+    )
+    
+    // 使用Box作为顶层容器，以便可以放置绝对定位的元素
+    Box(modifier = Modifier.fillMaxSize()) {
+        // 主要内容
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp),
+                .fillMaxSize()
+                .background(Color(0xFFF5F5F5)),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
-            Text(
-                text = "安徽工程大学",
-                fontSize = 24.sp,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.primary
+            // 顶部标题栏
+            TopAppBar(
+                modifier = Modifier.fillMaxWidth()
             )
             
-            Spacer(modifier = Modifier.height(4.dp))
-            
-            Text(
-                text = "智慧校园",
-                fontSize = 16.sp,
-                color = MaterialTheme.colorScheme.secondary
-            )
-        }
-        
-        // 功能卡片区域
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(16.dp)
-        ) {
-            // 功能区域标题
-            Text(
-                text = "常用功能",
-                fontSize = 18.sp,
-                fontWeight = FontWeight.Bold,
-                modifier = Modifier.padding(bottom = 16.dp)
-            )
-            
-            // 功能卡片网格
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 电费查询卡片
-                FeatureCard(
-                    icon = R.drawable.ic_electricity,
-                    title = "宿舍电费",
-                    description = "查询与管理电费",
-                    backgroundColor = Color(0xFFE8F5E9),
-                    modifier = Modifier.weight(1f),
-                    onClick = onElectricityClick
-                )
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                // 课表查询卡片
-                FeatureCard(
-                    icon = R.drawable.ic_schedule,
-                    title = "课程表",
-                    description = "查看每日课程",
-                    backgroundColor = Color(0xFFE3F2FD),
-                    modifier = Modifier.weight(1f),
-                    onClick = onScheduleClick
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 第二行功能卡片
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 校园卡卡片
-                FeatureCard(
-                    icon = R.drawable.ic_card,
-                    title = "校园卡",
-                    description = "余额与消费记录",
-                    backgroundColor = Color(0xFFFFF8E1),
-                    modifier = Modifier.weight(1f),
-                    onClick = onCampusCardClick
-                )
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                // 图书馆卡片
-                FeatureCard(
-                    icon = R.drawable.ic_library,
-                    title = "图书馆",
-                    description = "图书检索",
-                    backgroundColor = Color(0xFFFCE4EC),
-                    modifier = Modifier.weight(1f),
-                    onClick = onLibraryClick
-                )
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            // 第三行功能卡片
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                // 待办事项卡片
-                FeatureCard(
-                    icon = R.drawable.ic_todo,
-                    title = "待办事项",
-                    description = "管理日常任务",
-                    backgroundColor = Color(0xFFE0F2F1),
-                    modifier = Modifier.weight(1f),
-                    onClick = onTodoClick
-                )
-                
-                Spacer(modifier = Modifier.width(16.dp))
-                
-                // 占位卡片(可以在未来添加更多功能)
-                Box(modifier = Modifier.weight(1f)) {
-                    // 暂时为空
-                }
-            }
-        }
-        
-        // 底部信息
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .weight(1f),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Row(
+            // 学校名称和应用标题
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 16.dp),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.Bottom
+                    .padding(16.dp),
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
                 Text(
-                    text = "安徽工程大学 © 2023",
-                    color = Color.Gray,
-                    fontSize = 12.sp
+                    text = "安徽工程大学",
+                    fontSize = 24.sp,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
                 )
                 
-                // 关于按钮
-                var rotationState by remember { mutableStateOf(0f) }
-                val rotation by animateFloatAsState(
-                    targetValue = rotationState,
-                    animationSpec = tween(durationMillis = 300),
-                    label = "rotation"
+                Spacer(modifier = Modifier.height(4.dp))
+                
+                Text(
+                    text = "智慧校园",
+                    fontSize = 16.sp,
+                    color = MaterialTheme.colorScheme.secondary
+                )
+            }
+            
+            // 功能卡片区域
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(16.dp)
+            ) {
+                // 功能区域标题
+                Text(
+                    text = "常用功能",
+                    fontSize = 18.sp,
+                    fontWeight = FontWeight.Bold,
+                    modifier = Modifier.padding(bottom = 16.dp)
                 )
                 
-                IconButton(
-                    onClick = {
-                        // 触发旋转动画
-                        rotationState += 360f
-                        onAboutClick()
-                    },
-                    modifier = Modifier
-                        .size(40.dp)
-                        .clip(RoundedCornerShape(20.dp))
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.9f))
-                        .graphicsLayer(rotationZ = rotation)
+                // 功能卡片网格
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
                 ) {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_info),
-                        contentDescription = "关于",
-                        tint = Color.White,
-                        modifier = Modifier.size(20.dp)
+                    // 电费查询卡片
+                    FeatureCard(
+                        icon = R.drawable.ic_electricity,
+                        title = "宿舍电费",
+                        description = "查询与管理电费",
+                        backgroundColor = Color(0xFFE8F5E9),
+                        modifier = Modifier.weight(1f),
+                        onClick = onElectricityClick
+                    )
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    // 课表查询卡片
+                    FeatureCard(
+                        icon = R.drawable.ic_schedule,
+                        title = "课程表",
+                        description = "查看每日课程",
+                        backgroundColor = Color(0xFFE3F2FD),
+                        modifier = Modifier.weight(1f),
+                        onClick = onScheduleClick
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 第二行功能卡片
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // 校园卡卡片
+                    FeatureCard(
+                        icon = R.drawable.ic_card,
+                        title = "校园卡",
+                        description = "余额与消费记录",
+                        backgroundColor = Color(0xFFFFF8E1),
+                        modifier = Modifier.weight(1f),
+                        onClick = onCampusCardClick
+                    )
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    // 图书馆卡片
+                    FeatureCard(
+                        icon = R.drawable.ic_library,
+                        title = "图书馆",
+                        description = "图书检索",
+                        backgroundColor = Color(0xFFFCE4EC),
+                        modifier = Modifier.weight(1f),
+                        onClick = onLibraryClick
+                    )
+                }
+                
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                // 第三行功能卡片
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    // 待办事项卡片
+                    FeatureCard(
+                        icon = R.drawable.ic_todo,
+                        title = "待办事项",
+                        description = "管理日常任务",
+                        backgroundColor = Color(0xFFE0F2F1),
+                        modifier = Modifier.weight(1f),
+                        onClick = onTodoClick
+                    )
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    // 占位卡片(可以在未来添加更多功能)
+                    Box(modifier = Modifier.weight(1f)) {
+                        // 暂时为空
+                    }
+                }
+            }
+            
+            // 底部信息
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(horizontal = 16.dp, vertical = 16.dp),
+                    horizontalArrangement = Arrangement.Start,
+                    verticalAlignment = Alignment.Bottom
+                ) {
+                    Text(
+                        text = "Tthih © 2025",
+                        color = Color.Gray,
+                        fontSize = 12.sp
                     )
                 }
             }
+        }
+        
+        // 将关于按钮放在顶层Box中，绝对定位到右下角
+        IconButton(
+            onClick = {
+                // 触发旋转动画
+                rotationState += 360f
+                onAboutClick()
+            },
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(16.dp)
+                .size(48.dp)
+                .clip(RoundedCornerShape(24.dp))
+                .background(MaterialTheme.colorScheme.primary)
+                .graphicsLayer(rotationZ = rotation)
+        ) {
+            Icon(
+                painter = painterResource(id = R.drawable.ic_info),
+                contentDescription = "关于",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
+            )
         }
     }
 }

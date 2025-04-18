@@ -731,7 +731,7 @@ class ScheduleImportActivity : AppCompatActivity() {
         webView.addJavascriptInterface(this, "Android")
         
         // 设置WebView调试
-        WebView.setWebContentsDebuggingEnabled(true)
+        WebView.setWebContentsDebuggingEnabled(false) // 在 Release 版本中禁用 WebView 调试
         
         // 配置WebViewClient
         webView.webViewClient = object : WebViewClient() {

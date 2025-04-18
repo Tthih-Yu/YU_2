@@ -155,6 +155,17 @@
             android:theme="@style/Theme.YU"
             android:parentActivityName=".AboutActivity" />
             
+        <!-- 文件提供者，用于安装APK -->
+        <provider
+            android:name="androidx.core.content.FileProvider"
+            android:authorities="${applicationId}.provider"
+            android:exported="false"
+            android:grantUriPermissions="true">
+            <meta-data
+                android:name="android.support.FILE_PROVIDER_PATHS"
+                android:resource="@xml/file_paths" />
+        </provider>
+            
         <!-- 电费小部件提供者 -->
         <receiver
             android:name=".electricity.ElectricityWidgetProvider"
@@ -187,6 +198,13 @@
             android:theme="@style/Theme.YU"
             android:parentActivityName=".MainActivity" />
         
+        <!-- Add CampusCardLoginActivity declaration -->
+        <activity
+            android:name=".campuscard.CampusCardLoginActivity"
+            android:exported="false"
+            android:configChanges="orientation|screenSize" 
+            android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            
     </application>
 
 </manifest>

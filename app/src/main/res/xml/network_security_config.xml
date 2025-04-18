@@ -1,15 +1,44 @@
 <?xml version="1.0" encoding="utf-8"?>
 <network-security-config>
-    <!-- 允许明文流量 -->
+    <!-- Base configuration: Allows cleartext for legacy support if needed -->
+    <!-- Trust system and user-added CAs by default -->
     <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
             <certificates src="system" />
             <certificates src="user" />
         </trust-anchors>
     </base-config>
-    <!-- 特定域名配置 -->
+
+    <!-- Configuration for AHPU domains -->
     <domain-config cleartextTrafficPermitted="true">
+        <!-- Domain for electricity -->
         <domain includeSubdomains="true">tysf.ahpu.edu.cn</domain>
         <domain includeSubdomains="true">211.86.225.3</domain>
+        
+        <!-- Domains for CAS/WebVPN/Campus Card -->
+        <domain includeSubdomains="true">ids.ahpu.edu.cn</domain>
+        <domain includeSubdomains="true">webvpn.ahpu.edu.cn</domain>
+        <domain includeSubdomains="true">ehall.ahpu.edu.cn</domain> 
+        
+        <!-- Development/Testing ONLY: Trust any certificate for these specific domains -->
+        <!-- WARNING: Remove this in production. Obtain and add the actual CA cert. -->
+        <trust-anchors>
+            <certificates src="system" /> 
+            <certificates src="user" />
+        </trust-anchors>
+        
+        <!-- 注释掉 debug-overrides，将其内容合并到上面的 trust-anchors -->
+        <!-- <debug-overrides>
+            <trust-anchors>
+                <certificates src="user" /> 
+                <certificates src="system" />
+            </trust-anchors>
+        </debug-overrides> -->
+        
+        <!-- As a last resort for testing (VERY INSECURE), you might need to bypass pinning -->
+        <!-- <pin-set expiration="2025-01-01">
+            <pin digest="SHA-256">...</pin> 
+        </pin-set> -->
     </domain-config>
+    
 </network-security-config> 
