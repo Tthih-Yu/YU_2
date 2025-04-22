@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="colorPrimary">#689F38</color>
+    <color name="colorPrimaryDark">#4B7506</color>
+    <color name="colorAccent">#8BC34A</color>
+    
+    <!-- 抹茶绿夜间主题 -->
+    <color name="matcha_primary">#8BC34A</color>
+    <color name="matcha_light">#6B9529</color>
+    <color name="matcha_very_light">#2C3329</color>
+    <color name="matcha_dark">#4B7506</color>
+    <color name="matcha_background">#121C10</color>
+    <color name="matcha_card_background">#1E2A1C</color>
+    <color name="matcha_text_primary">#DAEBC1</color>
+    <color name="matcha_text_secondary">#A5B595</color>
+    <color name="matcha_text_hint">#6E7A6B</color>
+    <color name="matcha_divider">#283826</color>
+    <color name="matcha_accent">#D4AD00</color>
+    <color name="matcha_warning">#E68A00</color>
+    <color name="matcha_danger">#D32F2F</color>
+    <color name="matcha_success">#388E3C</color>
+    
+    <!-- 用电统计颜色 -->
+    <color name="danger_red">#EF5350</color>
+    <color name="warning_yellow">#FFB300</color>
+    <color name="safe_green">#66BB6A</color>
+    <color name="usage_increasing">#EF5350</color>
+    <color name="usage_decreasing">#66BB6A</color>
+    <color name="usage_stable">#5C6BC0</color>
+</resources> 
