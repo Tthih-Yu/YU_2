@@ -3,6 +3,10 @@ package com.tthih.yu.electricity
 import android.app.Application
 import androidx.work.*
 import java.util.concurrent.TimeUnit
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.GlobalScope
+import kotlinx.coroutines.launch
+import android.util.Log
 
 class ElectricityApplication : Application(), Configuration.Provider {
     
@@ -18,12 +22,23 @@ class ElectricityApplication : Application(), Configuration.Provider {
     override fun onCreate() {
         super.onCreate()
         
-        // 初始化WorkManager
+        // Initialize WorkManager (keep on main thread as recommended for basic setup)
+        try {
         WorkManager.initialize(this, workManagerConfiguration)
+        } catch (e: IllegalStateException) {
+             // WorkManager might already be initialized, which is fine.
+             Log.w("ElectricityApplication", "WorkManager already initialized: ${e.message}")
+        }
         
-        // 设置定时任务
+        // Schedule work asynchronously
+        GlobalScope.launch(Dispatchers.IO) {
+            try {
         scheduleElectricityDailyWork()
         scheduleWidgetUpdateWork()
+            } catch (e: Exception) {
+                Log.e("ElectricityApplication", "Error scheduling background work", e)
+            }
+        }
     }
     
     override fun getWorkManagerConfiguration(): Configuration {
@@ -34,31 +49,31 @@ class ElectricityApplication : Application(), Configuration.Provider {
     
     /**
      * 配置电费每日定时查询任务（23:50和00:00:01）
+     * NOW CALLED FROM BACKGROUND THREAD
      */
     private fun scheduleElectricityDailyWork() {
-        // 创建约束，要求设备已连接电源且有网络连接
         val constraints = Constraints.Builder()
             .setRequiredNetworkType(NetworkType.CONNECTED)
             .build()
         
-        // 创建15分钟定时执行的WorkRequest
-        // 注意：WorkManager的最小时间间隔为15分钟，但我们在Worker中会检查具体时间
         val dailyWorkRequest = PeriodicWorkRequestBuilder<ElectricityScheduledWorker>(
             15, TimeUnit.MINUTES
         )
             .setConstraints(constraints)
             .build()
         
-        // 注册定时任务
+        // getInstance() is safe to call from any thread after initialize
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             ELECTRICITY_DAILY_WORK,
-            ExistingPeriodicWorkPolicy.UPDATE,
+            ExistingPeriodicWorkPolicy.UPDATE, // Use UPDATE instead of KEEP to allow changes
             dailyWorkRequest
         )
+        Log.i("ElectricityApplication", "Scheduled daily electricity work.")
     }
     
     /**
      * 配置小部件更新任务（每3小时）
+     * NOW CALLED FROM BACKGROUND THREAD
      */
     private fun scheduleWidgetUpdateWork() {
         val constraints = Constraints.Builder()
@@ -73,8 +88,9 @@ class ElectricityApplication : Application(), Configuration.Provider {
         
         WorkManager.getInstance(this).enqueueUniquePeriodicWork(
             ELECTRICITY_WIDGET_WORK,
-            ExistingPeriodicWorkPolicy.UPDATE,
+            ExistingPeriodicWorkPolicy.UPDATE, // Use UPDATE instead of KEEP
             widgetWorkRequest
         )
+        Log.i("ElectricityApplication", "Scheduled widget update work.")
     }
 } 

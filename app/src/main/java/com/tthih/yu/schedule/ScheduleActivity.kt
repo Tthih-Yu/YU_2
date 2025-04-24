@@ -5,76 +5,77 @@ import android.content.Intent
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
-import android.view.LayoutInflater
 import android.view.View
-import android.view.ViewGroup
-import android.webkit.WebResourceError
-import android.webkit.WebResourceRequest
-import android.webkit.WebView
-import android.webkit.WebViewClient
-import android.widget.EditText
-import android.widget.ProgressBar
-import android.widget.TextView
 import android.widget.Toast
-import android.widget.LinearLayout
+import androidx.activity.compose.setContent // Added
 import androidx.activity.viewModels
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi // Ensure this is present
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable // Added
+import androidx.compose.foundation.gestures.Orientation // Added
+import androidx.compose.foundation.gestures.draggable // Added
+import androidx.compose.foundation.gestures.rememberDraggableState // Added
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.LazyListScope
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.*
+import androidx.compose.foundation.text.KeyboardActions // Added
+import androidx.compose.foundation.text.KeyboardOptions // Added
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.* // Keep Material 3 imports
 import androidx.compose.runtime.*
+import androidx.compose.runtime.livedata.observeAsState // Added
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.ComposeView
+import androidx.compose.ui.platform.LocalDensity // Added
+import androidx.compose.ui.platform.LocalFocusManager // Added
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.text.TextStyle // Added
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.ImeAction // Added
+import androidx.compose.ui.text.input.KeyboardType // Added
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.IntOffset // Added
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.Observer
+import androidx.lifecycle.ViewModelProvider // Added
+import androidx.compose.animation.core.Animatable // Added
+import androidx.compose.animation.core.FastOutSlowInEasing // Added
+import androidx.compose.animation.core.tween // Added
+import androidx.compose.animation.core.spring // Added
+import androidx.annotation.RequiresApi // Ensure this is present
+import android.appwidget.AppWidgetManager
+import android.content.ComponentName
+import android.os.Build
+import android.util.Log
+import android.graphics.Color as AndroidColor // 使用别名区分Android原生的Color
 import com.tthih.yu.R
+import kotlinx.coroutines.delay // Added
+import kotlinx.coroutines.launch // Added
 import java.text.SimpleDateFormat
 import java.util.*
-import androidx.compose.foundation.border
-import androidx.compose.foundation.BorderStroke
-import android.webkit.JavascriptInterface
-import org.json.JSONArray
-import android.util.Log
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.OutlinedTextFieldDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
-import androidx.compose.material3.BottomSheetDefaults
-import androidx.compose.material3.TextButton
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.foundation.text.KeyboardActions
-import androidx.compose.material.icons.filled.CalendarViewMonth
-import androidx.compose.ui.text.TextStyle
-import androidx.compose.material3.FloatingActionButton
-import androidx.compose.material3.FabPosition
-import androidx.compose.material3.Scaffold
-import androidx.compose.material.icons.filled.Save
+import kotlin.math.absoluteValue // Added
+import kotlin.math.roundToInt // Added
 
+// --- Ensure these critical imports are present ---
+// import androidx.compose.ui.graphics.Color // For Compose UI Colors - REMOVED, already imported above
+// import androidx.compose.foundation.lazy.LazyColumn // For Lazy Lists - REMOVED, already imported above
+// import androidx.compose.foundation.lazy.items // For list items function - REMOVED, already imported above
+// import androidx.compose.foundation.lazy.LazyListScope // Sometimes needed explicitly for item {} - REMOVED, already imported above
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 class ScheduleActivity : AppCompatActivity() {
     
     private val viewModel: ScheduleViewModel by viewModels()
@@ -95,9 +96,16 @@ class ScheduleActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_schedule)
         
+        // Check if launched from widget item click
+        if (intent?.action == ScheduleWidgetProvider.ACTION_VIEW_WEEK) {
+            currentView = VIEW_WEEKLY
+            // Optionally, jump to the current week when opened from widget
+            viewModel.jumpToCurrentWeek() 
+        }
+        
         // 设置状态栏为透明
         window.decorView.systemUiVisibility = View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN or View.SYSTEM_UI_FLAG_LAYOUT_STABLE
-        window.statusBarColor = android.graphics.Color.TRANSPARENT
+        window.statusBarColor = AndroidColor.TRANSPARENT // 使用别名引用Android原生Color
         
         // 初始化Compose视图
         setupComposeView()
@@ -105,8 +113,9 @@ class ScheduleActivity : AppCompatActivity() {
         // 初始化底部导航
         setupBottomNavigation()
         
-        // 观察周课表数据变化
-        viewModel.loadWeekSchedules(viewModel.selectedWeek.value ?: 1)
+        // 观察周课表数据变化 (Moved from onCreate to ensure it happens after potential view switch)
+        // viewModel.loadWeekSchedules(viewModel.selectedWeek.value ?: 1)
+        // Let onResume handle initial loading based on currentView
     }
     
     override fun onResume() {
@@ -115,7 +124,7 @@ class ScheduleActivity : AppCompatActivity() {
         // 每次恢复活动时，强制重新加载课表数据
         val currentWeekValue = viewModel.selectedWeek.value ?: viewModel.currentWeek.value ?: 1
         
-        // 延迟100毫秒执行，确保UI已完全初始化
+        // 延迟执行，确保UI已完全初始化
         Handler(Looper.getMainLooper()).postDelayed({
             // 根据当前视图类型重新加载数据
             if (currentView == VIEW_DAILY) {
@@ -128,9 +137,9 @@ class ScheduleActivity : AppCompatActivity() {
                 Log.d("ScheduleActivity", "onResume: 重新加载周视图数据，当前周: $currentWeekValue")
             }
             
-            // 刷新Compose视图
-            findViewById<ComposeView>(R.id.compose_view).invalidate()
-        }, 300)
+            // 刷新Compose视图 (Compose should react automatically, but explicit invalidation might help)
+            findViewById<ComposeView>(R.id.compose_view)?.invalidate()
+        }, 100) // Reduced delay slightly
     }
     
     private fun setupComposeView() {
@@ -276,7 +285,7 @@ class ScheduleActivity : AppCompatActivity() {
                     val coursesForThisNode = scheduleList.filter { 
                         it.startNode <= timeNode.node && it.endNode >= timeNode.node 
                     }
-                    CourseItem(timeNode = timeNode, courses = coursesForThisNode)
+                    CourseItem(timeNode = timeNode, courses = coursesForThisNode, viewModel)
                 }
                 item { Spacer(modifier = Modifier.height(16.dp)) }
                 
@@ -289,7 +298,7 @@ class ScheduleActivity : AppCompatActivity() {
                     val coursesForThisNode = scheduleList.filter { 
                         it.startNode <= timeNode.node && it.endNode >= timeNode.node 
                     }
-                    CourseItem(timeNode = timeNode, courses = coursesForThisNode)
+                    CourseItem(timeNode = timeNode, courses = coursesForThisNode, viewModel)
                 }
                 item { Spacer(modifier = Modifier.height(16.dp)) }
                 
@@ -302,7 +311,7 @@ class ScheduleActivity : AppCompatActivity() {
                     val coursesForThisNode = scheduleList.filter { 
                         it.startNode <= timeNode.node && it.endNode >= timeNode.node 
                     }
-                    CourseItem(timeNode = timeNode, courses = coursesForThisNode)
+                    CourseItem(timeNode = timeNode, courses = coursesForThisNode, viewModel)
                 }
             }
         }
@@ -324,7 +333,7 @@ class ScheduleActivity : AppCompatActivity() {
     
     // 课程项 Composable
     @Composable
-    private fun CourseItem(timeNode: ScheduleTimeNode, courses: List<ScheduleData>) {
+    private fun CourseItem(timeNode: ScheduleTimeNode, courses: List<ScheduleData>, viewModel: ScheduleViewModel) {
         // 添加调试日志
         Log.d("ScheduleActivity", "CourseItem - 节次: ${timeNode.node}, 课程数量: ${courses.size}")
         
@@ -450,31 +459,47 @@ class ScheduleActivity : AppCompatActivity() {
     private fun WeeklyView(viewModel: ScheduleViewModel) {
         // 状态获取和监听
         val selectedWeekState = remember { mutableStateOf(viewModel.selectedWeek.value ?: 1) }
-        val currentWeekState = remember { mutableStateOf(viewModel.currentWeek.value ?: 1) }
+        // 直接观察ViewModel中的currentWeek LiveData
+        val currentWeekLiveData = viewModel.currentWeek
+        val currentWeekObserved by currentWeekLiveData.observeAsState(viewModel.currentWeek.value ?: 1)
+        
+        // 使用derivedStateOf来减少不必要的重组
         val schedulesMapState = remember { mutableStateOf(viewModel.weeklySchedules.value ?: emptyMap<Int, List<ScheduleData>>()) }
         
         // 添加课程详情显示状态
         var selectedCourse by remember { mutableStateOf<ScheduleData?>(null) }
         var showDetailSheet by remember { mutableStateOf(false) }
         
+        // 添加新课程状态
+        var showAddCourseSheet by remember { mutableStateOf(false) }
+        var longPressedDay by remember { mutableStateOf(1) } // 默认周一
+        var longPressedNode by remember { mutableStateOf(1) } // 默认第一节
+        
+        // 获取今天是星期几
+        val calendar = Calendar.getInstance()
+        // Calendar中周日是1，周一是2，所以需要转换
+        val todayWeekDay = if (calendar.get(Calendar.DAY_OF_WEEK) == 1) 7 else calendar.get(Calendar.DAY_OF_WEEK) - 1
+        
         DisposableEffect(viewModel) {
             val selectedWeekObserver = Observer<Int> { week -> selectedWeekState.value = week ?: 1 }
-            val currentWeekObserver = Observer<Int> { week -> currentWeekState.value = week ?: 1 }
+            // 不再需要在这里观察 currentWeek
+            // val currentWeekObserver = Observer<Int> { week -> currentWeekState.value = week ?: 1 }
             val scheduleObserver = Observer<Map<Int, List<ScheduleData>>> { map -> schedulesMapState.value = map ?: emptyMap() }
             
             viewModel.selectedWeek.observeForever(selectedWeekObserver)
-            viewModel.currentWeek.observeForever(currentWeekObserver)
+            // viewModel.currentWeek.observeForever(currentWeekObserver) // Correctly removed
             viewModel.weeklySchedules.observeForever(scheduleObserver)
             
             onDispose {
                 viewModel.selectedWeek.removeObserver(selectedWeekObserver)
-                viewModel.currentWeek.removeObserver(currentWeekObserver)
+                // viewModel.currentWeek.removeObserver(currentWeekObserver)
                 viewModel.weeklySchedules.removeObserver(scheduleObserver)
             }
         }
         
         val selectedWeek = selectedWeekState.value
-        val currentWeek = currentWeekState.value
+        // 使用观察到的 currentWeekObserved
+        val currentWeek = currentWeekObserved 
         val weekSchedules = schedulesMapState.value
         
         // 显示课程详情底部弹窗
@@ -493,11 +518,177 @@ class ScheduleActivity : AppCompatActivity() {
             )
         }
         
+        // 显示添加课程底部弹窗
+        if (showAddCourseSheet) {
+            AddCourseSheet(
+                weekDay = longPressedDay,
+                startNode = longPressedNode,
+                selectedWeek = selectedWeek,
+                onDismiss = { showAddCourseSheet = false },
+                onAdd = { newCourse ->
+                    viewModel.addSchedule(newCourse)
+                    showAddCourseSheet = false
+                }
+            )
+        }
+        
+        // 使用协程范围来处理动画
+        val coroutineScope = rememberCoroutineScope()
+        
+        // 页面宽度 - 用于计算拖动阈值
+        val density = LocalDensity.current
+        val screenWidth = remember {
+            density.run { 360.dp.toPx() }
+        }
+        
+        // 滑动阈值 - 超过屏幕宽度的30%时切换页面
+        val swipeThreshold = screenWidth * 0.3f
+        
+        // 使用rememberable animatable来重用动画对象，避免每次创建新的实例
+        val offsetXAnimatable = remember { Animatable(0f) }
+        
+        // 当前是否可以切换周次 - 使用derivedStateOf减少重组
+        val canGoNext by remember(selectedWeek) { derivedStateOf { selectedWeek < (viewModel.totalWeeks.value ?: 18) } }
+        val canGoPrevious by remember(selectedWeek) { derivedStateOf { selectedWeek > 1 } }
+        
+        // 是否正在动画中，防止动画过程中重复触发
+        var isAnimating by remember { mutableStateOf(false) }
+        
+        // 延迟加载数据，先完成动画
+        fun loadWeekSchedulesDelayed(week: Int) {
+            coroutineScope.launch {
+                delay(50) // 短暂延迟，让UI先有响应
+                viewModel.loadWeekSchedules(week)
+            }
+        }
+        
+        // 定义可拖动状态 - 优化拖动逻辑
+        val dragState = rememberDraggableState { delta ->
+            if (!isAnimating) { // 只有在不动画时才响应拖动
+                coroutineScope.launch {
+                    // 根据是否能切换来限制拖动方向
+                    val newOffset = offsetXAnimatable.value + delta
+                    
+                    // 限制拖动范围
+                    val targetValue = when {
+                        // 不能向前翻页且尝试向右拖动（正值）
+                        !canGoPrevious && newOffset > 0 -> 0f
+                        // 不能向后翻页且尝试向左拖动（负值）
+                        !canGoNext && newOffset < 0 -> 0f
+                        // 限制最大拖动距离为屏幕宽度的50%
+                        newOffset > screenWidth * 0.5f -> screenWidth * 0.5f
+                        newOffset < -screenWidth * 0.5f -> -screenWidth * 0.5f
+                        // 正常情况下允许拖动
+                        else -> newOffset
+                    }
+                    
+                    offsetXAnimatable.snapTo(targetValue)
+                }
+            }
+        }
+        
+        // 滑动后切换页面的函数 - 优化动画逻辑
+        fun animateToPage(forward: Boolean) {
+            if (isAnimating) return // 防止重复触发
+            
+            coroutineScope.launch {
+                isAnimating = true
+                
+                if (forward && canGoNext) {
+                    // 向左滑动到屏幕外
+                    offsetXAnimatable.animateTo(
+                        targetValue = -screenWidth,
+                        animationSpec = tween(
+                            durationMillis = 200,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                    
+                    // 切换周次
+                    viewModel.nextWeek()
+                    // 延迟加载数据
+                    loadWeekSchedulesDelayed(viewModel.selectedWeek.value ?: 1)
+                    
+                    // 重置位置并从右侧滑入
+                    offsetXAnimatable.snapTo(screenWidth)
+                    offsetXAnimatable.animateTo(
+                        targetValue = 0f,
+                        animationSpec = tween(
+                            durationMillis = 200,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                } 
+                else if (!forward && canGoPrevious) {
+                    // 向右滑动到屏幕外
+                    offsetXAnimatable.animateTo(
+                        targetValue = screenWidth,
+                        animationSpec = tween(
+                            durationMillis = 200,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                    
+                    // 切换周次
+                    viewModel.previousWeek()
+                    // 延迟加载数据
+                    loadWeekSchedulesDelayed(viewModel.selectedWeek.value ?: 1)
+                    
+                    // 重置位置并从左侧滑入
+                    offsetXAnimatable.snapTo(-screenWidth)
+                    offsetXAnimatable.animateTo(
+                        targetValue = 0f,
+                        animationSpec = tween(
+                            durationMillis = 200,
+                            easing = FastOutSlowInEasing
+                        )
+                    )
+                } 
+                else {
+                    // 回弹到原位 - 使用更流畅的动画规格
+                    offsetXAnimatable.animateTo(
+                        targetValue = 0f,
+                        animationSpec = spring(
+                            dampingRatio = 0.75f,
+                            stiffness = 400f
+                        )
+                    )
+                }
+                
+                isAnimating = false
+            }
+        }
+        
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MatchaBgColor)
-                .verticalScroll(rememberScrollState()) // 添加垂直滚动
+                .offset { IntOffset(offsetXAnimatable.value.roundToInt(), 0) }
+                .draggable(
+                    state = dragState,
+                    orientation = Orientation.Horizontal,
+                    onDragStopped = { velocity ->
+                        // 判断是否应该切换页面，基于拖动距离和速度
+                        // 正值表示向右拖动（上一页），负值表示向左拖动（下一页）
+                        val isPreviousPage = offsetXAnimatable.value > 0
+                        
+                        when {
+                            // 距离超过阈值，切换页面
+                            offsetXAnimatable.value.absoluteValue >= swipeThreshold -> {
+                                animateToPage(!isPreviousPage)
+                            }
+                            // 速度很快，切换页面 - 调整速度阈值使更灵敏
+                            velocity.absoluteValue >= 800f -> {
+                                animateToPage(!isPreviousPage)
+                            }
+                            // 否则回弹到原位
+                            else -> {
+                                animateToPage(false)
+                            }
+                        }
+                    }
+                )
+                .verticalScroll(rememberScrollState()) // 保留垂直滚动
         ) {
             // 顶部周选择栏
             Card(
@@ -511,27 +702,35 @@ class ScheduleActivity : AppCompatActivity() {
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(horizontal = 8.dp, vertical = 4.dp), // 调整内边距
+                        .padding(horizontal = 8.dp, vertical = 4.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween
                 ) {
                     // 上一周按钮
                     IconButton(
                         onClick = { 
-                            viewModel.previousWeek()
-                            viewModel.loadWeekSchedules(viewModel.selectedWeek.value ?: 1)
+                            if (canGoPrevious && !isAnimating) { // 避免动画中重复触发
+                                animateToPage(false)
+                            }
                         },
-                        modifier = Modifier.size(48.dp) // 增大点击区域
+                        modifier = Modifier.size(48.dp),
+                        enabled = canGoPrevious && !isAnimating
                     ) {
-                        Icon(painter = painterResource(id = R.drawable.ic_arrow_left), 
-                             contentDescription = "上一周", 
-                             tint = MatchaGreen)
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_arrow_left), 
+                            contentDescription = "上一周", 
+                            tint = if (canGoPrevious && !isAnimating) MatchaGreen else MatchaTextHint
+                        )
                     }
                     
                     // 当前周显示
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.clickable { viewModel.jumpToCurrentWeek() } // 点击跳回本周
+                        modifier = Modifier.clickable(
+                            enabled = !isAnimating // 避免动画中点击
+                        ) { 
+                            if (!isAnimating) viewModel.jumpToCurrentWeek() 
+                        }
                     ) {
                         Text(
                             text = "第${selectedWeek}周",
@@ -552,14 +751,18 @@ class ScheduleActivity : AppCompatActivity() {
                     // 下一周按钮
                     IconButton(
                         onClick = { 
-                            viewModel.nextWeek() 
-                            viewModel.loadWeekSchedules(viewModel.selectedWeek.value ?: 1)
+                            if (canGoNext && !isAnimating) { // 避免动画中重复触发
+                                animateToPage(true)
+                            }
                         },
-                        modifier = Modifier.size(48.dp) // 增大点击区域
+                        modifier = Modifier.size(48.dp),
+                        enabled = canGoNext && !isAnimating
                     ) {
-                         Icon(painter = painterResource(id = R.drawable.ic_arrow_right), 
-                              contentDescription = "下一周", 
-                              tint = MatchaGreen)
+                        Icon(
+                            painter = painterResource(id = R.drawable.ic_arrow_right), 
+                            contentDescription = "下一周", 
+                            tint = if (canGoNext && !isAnimating) MatchaGreen else MatchaTextHint
+                        )
                     }
                 }
             }
@@ -686,6 +889,8 @@ class ScheduleActivity : AppCompatActivity() {
                                     
                                     CourseGridItem(
                                         course = course, 
+                                        selectedWeek = selectedWeek,
+                                        currentWeek = currentWeek, // 使用观察到的 currentWeek
                                         modifier = Modifier.height(itemHeight),
                                         onClick = { 
                                             selectedCourse = course
@@ -696,7 +901,20 @@ class ScheduleActivity : AppCompatActivity() {
                                     currentNode += nodeSpan // 跳过这门课占据的节数
                                 } else {
                                     // 这个节点没有课开始，是空格子
-                                    Spacer(modifier = Modifier.height(55.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .height(55.dp)
+                                            .fillMaxWidth()
+                                            .combinedClickable(
+                                                onClick = { },
+                                                onLongClick = {
+                                                    // 长按显示添加课程弹窗
+                                                    longPressedDay = day
+                                                    longPressedNode = currentNode
+                                                    showAddCourseSheet = true
+                                                }
+                                            )
+                                    )
                                     currentNode += 1
                                 }
                                 
@@ -718,54 +936,6 @@ class ScheduleActivity : AppCompatActivity() {
         }
     }
 
-    // 课程格子 Composable
-    @Composable
-    private fun CourseGridItem(
-        course: ScheduleData, 
-        modifier: Modifier = Modifier,
-        onClick: () -> Unit = {}
-    ) {
-        Card(
-            modifier = modifier
-                .fillMaxWidth()
-                .padding(2.dp)
-                .clickable(onClick = onClick), // 添加点击事件
-            shape = RoundedCornerShape(8.dp),
-            colors = CardDefaults.cardColors(containerColor = MatchaLightGreen.copy(alpha = 0.7f)),
-            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), 
-            border = BorderStroke(0.5.dp, MatchaLightGreen.copy(alpha = 0.3f))
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 5.dp, vertical = 4.dp), // 调整内边距
-                horizontalAlignment = Alignment.Start, // 水平居左对齐
-                verticalArrangement = Arrangement.Top // 垂直居顶对齐
-            ) {
-                Text(
-                    text = course.name,
-                    fontSize = 12.sp, 
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Start, // 文本左对齐
-                    color = MatchaTextPrimary,
-                    maxLines = Int.MAX_VALUE, // 移除行数限制
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Clip, // 使用Clip避免Ellipsis
-                    lineHeight = 14.sp // 设置较小的行高以减小行间距
-                )
-                Spacer(modifier = Modifier.height(1.dp)) // 进一步减小间距
-                Text(
-                    text = course.classroom,
-                    fontSize = 10.sp, 
-                    textAlign = TextAlign.Start, // 文本左对齐
-                    color = MatchaTextSecondary,
-                    maxLines = Int.MAX_VALUE, // 移除行数限制
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Clip, // 使用Clip避免Ellipsis
-                    lineHeight = 12.sp // 设置较小的行高
-                )
-            }
-        }
-    }
-    
     @Composable
     private fun SettingsView(viewModel: ScheduleViewModel) {
         // 状态获取和监听 (与之前类似)
@@ -1106,7 +1276,24 @@ class ScheduleActivity : AppCompatActivity() {
                                         }
                                         .setNegativeButton("取消", null)
                                         .show()
-                                 }
+                                }
+                            )
+                            // --- 添加桌面小部件按钮 --- 
+                            SettingItem(
+                                iconResId = Icons.Filled.Widgets, // Choose an appropriate icon
+                                title = "添加桌面小部件",
+                                value = "将今日课表添加到桌面",
+                                onClick = { 
+                                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                        requestPinScheduleWidget()
+                                    } else {
+                                        Toast.makeText(
+                                            this@ScheduleActivity, 
+                                            "请长按桌面空白处，选择\'小部件\'，然后找到\'今日课表\'进行添加", 
+                                            Toast.LENGTH_LONG
+                                        ).show()
+                                    }
+                                }
                             )
                         }
                     }
@@ -1228,7 +1415,7 @@ class ScheduleActivity : AppCompatActivity() {
                 )
             )
         }
-         Divider(modifier = Modifier.padding(start = if (iconResId != null) 52.dp else 16.dp, end = 16.dp), color = MatchaDivider, thickness = 0.5.dp)
+         Divider(modifier = Modifier.padding(start = if (iconResId != null) 52.dp else 16.dp), color = MatchaDivider, thickness = 0.5.dp)
     }
     
     @Composable
@@ -1377,8 +1564,7 @@ class ScheduleActivity : AppCompatActivity() {
         }
     }
     
-    // 课程详情底部弹出窗口
-    @OptIn(ExperimentalMaterial3Api::class)
+    // 课程详情对话框
     @Composable
     private fun CourseDetailSheet(
         course: ScheduleData,
@@ -1408,22 +1594,11 @@ class ScheduleActivity : AppCompatActivity() {
         var isEditing by remember { mutableStateOf(false) }
         var showDeleteConfirm by remember { mutableStateOf(false) }
         
-        ModalBottomSheet(
+        AlertDialog(
             onDismissRequest = onDismiss,
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = false),
-            dragHandle = { BottomSheetDefaults.DragHandle() },
-            containerColor = MatchaCardBg
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = 16.dp, vertical = 8.dp)
-            ) {
-                // 标题栏
+            title = {
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
+                    modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
@@ -1433,7 +1608,6 @@ class ScheduleActivity : AppCompatActivity() {
                         fontWeight = FontWeight.Bold,
                         color = MatchaTextPrimary
                     )
-                    
                     // 编辑/保存按钮
                     IconButton(
                         onClick = { 
@@ -1466,14 +1640,13 @@ class ScheduleActivity : AppCompatActivity() {
                         )
                     }
                 }
-                
-                Divider(color = MatchaDivider, thickness = 1.dp)
-                
+            },
+            text = { 
                 // 课程内容区域
                 Column(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .padding(vertical = 16.dp)
+                        .verticalScroll(rememberScrollState()) // 添加垂直滚动
                 ) {
                     // 课程名称
                     DetailItem(
@@ -1630,41 +1803,28 @@ class ScheduleActivity : AppCompatActivity() {
                         }
                     }
                 }
-                
-                Spacer(modifier = Modifier.height(16.dp))
-                
+            },
+            confirmButton = {
                 // 底部按钮区域
                 Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(bottom = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceEvenly
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.End
                 ) {
-                    Button(
-                        onClick = { onDismiss() },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = MatchaCardBg,
-                            contentColor = MatchaTextPrimary
-                        ),
-                        border = BorderStroke(1.dp, MatchaDivider),
-                        modifier = Modifier.weight(1f).padding(end = 8.dp)
+                    TextButton(
+                        onClick = { showDeleteConfirm = true }
+                    ) {
+                        Text("删除", color = Color(0xFFE57373))
+                    }
+                    Spacer(modifier = Modifier.width(8.dp))
+                    TextButton(
+                        onClick = { onDismiss() }
                     ) {
                         Text("取消")
                     }
-                    
-                    Button(
-                        onClick = { showDeleteConfirm = true },
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = Color(0xFFE57373), // 浅红色
-                            contentColor = Color.White
-                        ),
-                        modifier = Modifier.weight(1f).padding(start = 8.dp)
-                    ) {
-                        Text("删除")
-                    }
                 }
-            }
-        }
+            },
+            containerColor = MatchaCardBg
+        )
         
         // 删除确认对话框
         if (showDeleteConfirm) {
@@ -1674,7 +1834,10 @@ class ScheduleActivity : AppCompatActivity() {
                 text = { Text("确定要删除《${course.name}》这门课程吗？此操作不可恢复。") },
                 confirmButton = {
                     TextButton(
-                        onClick = { onDelete(course) }
+                        onClick = { 
+                            onDelete(course)
+                            showDeleteConfirm = false // 关闭确认对话框
+                        }
                     ) {
                         Text("删除", color = Color(0xFFE57373))
                     }
@@ -1814,10 +1977,364 @@ class ScheduleActivity : AppCompatActivity() {
         Divider(modifier = Modifier.padding(start = if (iconResId != null) 52.dp else 16.dp, end = 16.dp), color = MatchaDivider, thickness = 0.5.dp)
     }
     
+    // 课程格子 Composable
+    @Composable
+    private fun CourseGridItem(
+        course: ScheduleData,
+        selectedWeek: Int, // 传入当前选择的周次
+        currentWeek: Int,  // 传入实际当前周次
+        modifier: Modifier = Modifier,
+        onClick: () -> Unit = {}
+    ) {
+        // 获取今天是星期几
+        val calendar = Calendar.getInstance()
+        // Calendar中周日是1，周一是2，所以需要转换
+        val convertedTodayWeekDay = if (calendar.get(Calendar.DAY_OF_WEEK) == 1) 7 else calendar.get(Calendar.DAY_OF_WEEK) - 1
+        
+        // 判断是否为今天的课程（当前周+当天星期）
+        // 直接使用传入的参数
+        val isToday = course.weekDay == convertedTodayWeekDay && selectedWeek == currentWeek
+        
+        // 设置颜色：当天课程使用橙黄色，否则使用浅绿色
+        val backgroundColor = if (isToday) { // 移除 highlightToday 参数的检查
+            Color(0xFFFFAB00) // 橙黄色
+        } else {
+            MatchaLightGreen.copy(alpha = 0.7f)
+        }
+
+        Card(
+            modifier = modifier
+                .fillMaxWidth()
+                .padding(2.dp)
+                .clickable(onClick = onClick), // 添加点击事件
+            shape = RoundedCornerShape(8.dp),
+            colors = CardDefaults.cardColors(containerColor = backgroundColor),
+            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp), 
+            border = BorderStroke(0.5.dp, backgroundColor.copy(alpha = 0.3f))
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(horizontal = 5.dp, vertical = 4.dp), // 调整内边距
+                horizontalAlignment = Alignment.Start, // 水平居左对齐
+                verticalArrangement = Arrangement.Top // 垂直居顶对齐
+            ) {
+                Text(
+                    text = course.name,
+                    fontSize = 12.sp, 
+                    fontWeight = FontWeight.SemiBold,
+                    textAlign = TextAlign.Start, // 文本左对齐
+                    color = MatchaTextPrimary,
+                    maxLines = Int.MAX_VALUE, // 移除行数限制
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Clip, // 使用Clip避免Ellipsis
+                    lineHeight = 14.sp // 设置较小的行高以减小行间距
+                )
+                Spacer(modifier = Modifier.height(1.dp)) // 进一步减小间距
+                Text(
+                    text = course.classroom,
+                    fontSize = 10.sp, 
+                    textAlign = TextAlign.Start, // 文本左对齐
+                    color = MatchaTextSecondary,
+                    maxLines = Int.MAX_VALUE, // 移除行数限制
+                    overflow = androidx.compose.ui.text.style.TextOverflow.Clip, // 使用Clip避免Ellipsis
+                    lineHeight = 12.sp // 设置较小的行高
+                )
+            }
+        }
+    }
+    
+    @Composable
+    private fun AddCourseSheet(
+        weekDay: Int,
+        startNode: Int,
+        selectedWeek: Int,
+        onDismiss: () -> Unit,
+        onAdd: (ScheduleData) -> Unit
+    ) {
+        // 创建可编辑的课程状态
+        var courseName by remember { mutableStateOf("") }
+        var courseClassroom by remember { mutableStateOf("") }
+        var courseTeacher by remember { mutableStateOf("") }
+        var courseStartNode by remember { mutableStateOf(startNode.toString()) }
+        var courseEndNode by remember { mutableStateOf(startNode.toString()) }
+        var courseStartWeek by remember { mutableStateOf(selectedWeek.toString()) }
+        var courseEndWeek by remember { mutableStateOf(selectedWeek.toString()) }
+        
+        // 星期几中文映射
+        val weekDayNames = listOf("周一", "周二", "周三", "周四", "周五", "周六", "周日")
+        val weekDayText = weekDayNames[weekDay - 1]
+        
+        // 输入验证状态
+        var isNameValid by remember { mutableStateOf(true) }
+        
+        AlertDialog(
+            onDismissRequest = onDismiss,
+            title = {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "添加课程",
+                        fontSize = 20.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = MatchaTextPrimary
+                    )
+                }
+            },
+            text = { 
+                // 课程内容区域
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .verticalScroll(rememberScrollState()) // 添加垂直滚动
+                ) {
+                    // 课程名称
+                    Column {
+                        DetailItem(
+                            title = "课程名称",
+                            isEditing = true,
+                            value = courseName,
+                            onValueChange = { 
+                                courseName = it
+                                isNameValid = courseName.isNotEmpty()
+                            }
+                        )
+                        if (!isNameValid) {
+                            Text(
+                                text = "课程名称不能为空",
+                                color = Color.Red,
+                                fontSize = 12.sp,
+                                modifier = Modifier.padding(start = 80.dp)
+                            )
+                        }
+                    }
+                    
+                    // 教室
+                    DetailItem(
+                        title = "教室",
+                        isEditing = true,
+                        value = courseClassroom,
+                        onValueChange = { courseClassroom = it }
+                    )
+                    
+                    // 教师
+                    DetailItem(
+                        title = "教师",
+                        isEditing = true,
+                        value = courseTeacher,
+                        onValueChange = { courseTeacher = it }
+                    )
+                    
+                    // 星期几（不可编辑）
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "星期",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MatchaTextPrimary,
+                            modifier = Modifier.width(80.dp)
+                        )
+                        Text(
+                            text = weekDayText,
+                            fontSize = 16.sp,
+                            color = MatchaTextPrimary
+                        )
+                    }
+                    
+                    // 节次
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "节次",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MatchaTextPrimary,
+                            modifier = Modifier.width(80.dp)
+                        )
+                        
+                        // 编辑模式：显示输入框
+                        OutlinedTextField(
+                            value = courseStartNode,
+                            onValueChange = { courseStartNode = it },
+                            modifier = Modifier.width(60.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MatchaGreen,
+                                unfocusedBorderColor = MatchaDivider
+                            )
+                        )
+                        Text(
+                            text = " - ",
+                            fontSize = 16.sp,
+                            color = MatchaTextPrimary,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                        OutlinedTextField(
+                            value = courseEndNode,
+                            onValueChange = { courseEndNode = it },
+                            modifier = Modifier.width(60.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MatchaGreen,
+                                unfocusedBorderColor = MatchaDivider
+                            )
+                        )
+                    }
+                    
+                    // 周数
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(vertical = 8.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = "周数",
+                            fontSize = 16.sp,
+                            fontWeight = FontWeight.Medium,
+                            color = MatchaTextPrimary,
+                            modifier = Modifier.width(80.dp)
+                        )
+                        
+                        // 编辑模式：显示输入框
+                        OutlinedTextField(
+                            value = courseStartWeek,
+                            onValueChange = { courseStartWeek = it },
+                            modifier = Modifier.width(60.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MatchaGreen,
+                                unfocusedBorderColor = MatchaDivider
+                            )
+                        )
+                        Text(
+                            text = " - ",
+                            fontSize = 16.sp,
+                            color = MatchaTextPrimary,
+                            modifier = Modifier.padding(horizontal = 4.dp)
+                        )
+                        OutlinedTextField(
+                            value = courseEndWeek,
+                            onValueChange = { courseEndWeek = it },
+                            modifier = Modifier.width(60.dp),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            singleLine = true,
+                            colors = OutlinedTextFieldDefaults.colors(
+                                focusedBorderColor = MatchaGreen,
+                                unfocusedBorderColor = MatchaDivider
+                            )
+                        )
+                    }
+                }
+            },
+            confirmButton = { 
+                Button(
+                    onClick = { 
+                        // 验证课程名不为空
+                        if (courseName.isEmpty()) {
+                            isNameValid = false
+                            return@Button
+                        }
+                        
+                        // 验证和转换数值
+                        val startNodeValue = courseStartNode.toIntOrNull() ?: startNode
+                        val endNodeValue = courseEndNode.toIntOrNull() ?: startNode
+                        val startWeekValue = courseStartWeek.toIntOrNull() ?: selectedWeek
+                        val endWeekValue = courseEndWeek.toIntOrNull() ?: selectedWeek
+                        
+                        // 验证节次和周数
+                        if (startNodeValue > endNodeValue) {
+                            Toast.makeText(this@ScheduleActivity, "结束节次不能小于开始节次", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        
+                        if (endNodeValue > 11) {
+                            Toast.makeText(this@ScheduleActivity, "节次数不能大于11", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        
+                        if (startWeekValue > endWeekValue) {
+                            Toast.makeText(this@ScheduleActivity, "结束周次不能小于开始周次", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        
+                        if (endWeekValue > (viewModel.totalWeeks.value ?: 18)) {
+                            Toast.makeText(this@ScheduleActivity, "周次超出总周数范围", Toast.LENGTH_SHORT).show()
+                            return@Button
+                        }
+                        
+                        // 创建新课程并添加
+                        val newCourse = ScheduleData(
+                            id = 0, // Room会自动生成ID
+                            name = courseName,
+                            classroom = courseClassroom,
+                            teacher = courseTeacher,
+                            weekDay = weekDay,
+                            startNode = startNodeValue,
+                            endNode = endNodeValue,
+                            startWeek = startWeekValue,
+                            endWeek = endWeekValue
+                        )
+                        
+                        onAdd(newCourse)
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MatchaGreen,
+                        contentColor = Color.White
+                    )
+                ) {
+                    Text("添加")
+                }
+            },
+            dismissButton = {
+                TextButton(
+                    onClick = { onDismiss() }
+                ) {
+                    Text("取消")
+                }
+            },
+            containerColor = MatchaCardBg
+        )
+    }
+    
     companion object {
         const val VIEW_DAILY = 0
         const val VIEW_WEEKLY = 1
         const val VIEW_SETTINGS = 2
         const val REQUEST_IMPORT_SCHEDULE = 1001
+    }
+    
+    // --- Helper function to request pinning the widget --- 
+    @RequiresApi(Build.VERSION_CODES.O)
+    private fun requestPinScheduleWidget() {
+        val appWidgetManager = AppWidgetManager.getInstance(this)
+        val myProvider = ComponentName(this, ScheduleWidgetProvider::class.java)
+
+        if (appWidgetManager.isRequestPinAppWidgetSupported) {
+            // Create the PendingIntent object only if your app needs to be notified
+            // that the user allowed the widget to be pinned. Note that, if the pinning
+            // fails, your app isn't notified.
+            // val successCallback = PendingIntent.getBroadcast(..)
+
+            // Request pinning the widget
+            appWidgetManager.requestPinAppWidget(myProvider, null, null)
+        } else {
+            // Fallback for devices that support O+ but not pinning
+            Toast.makeText(this, "您的设备不支持直接添加小部件，请手动添加", Toast.LENGTH_LONG).show()
+        }
     }
 } 

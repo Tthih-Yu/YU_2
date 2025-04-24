@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="110dp"
+    android:layout_height="40dp"
+    android:background="@drawable/widget_background_matcha_primary"
+    android:orientation="horizontal"
+    android:padding="4dp">
+
+    <!-- 电量数字 -->
+    <TextView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="3"
+        android:gravity="center"
+        android:text="35.4 ¥"
+        android:textColor="@color/white"
+        android:textSize="18sp"
+        android:textStyle="bold" />
+
+    <!-- 分隔线 (使用ImageView代替View) -->
+    <ImageView
+        android:layout_width="1dp"
+        android:layout_height="match_parent"
+        android:layout_marginVertical="4dp"
+        android:background="@color/matcha_light"
+        android:contentDescription="分隔线"/>
+
+    <!-- 刷新按钮 -->
+    <ImageView
+        android:layout_width="0dp"
+        android:layout_height="match_parent"
+        android:layout_weight="1"
+        android:contentDescription="刷新电量"
+        android:padding="4dp"
+        android:scaleType="fitCenter"
+        android:src="@drawable/ic_refresh"
+        android:tint="@color/white" />
+
+</LinearLayout> 

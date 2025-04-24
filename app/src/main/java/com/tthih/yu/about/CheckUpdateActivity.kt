@@ -42,6 +42,7 @@ class CheckUpdateActivity : AppCompatActivity() {
     private lateinit var updateButton: Button
     private lateinit var lastCheckedTextView: TextView
     private lateinit var updateContentTextView: TextView
+    private lateinit var viewUpdateLogButton: Button
     
     // 控制更新状态
     private var isChecking = false
@@ -104,6 +105,7 @@ class CheckUpdateActivity : AppCompatActivity() {
         updateButton = findViewById(R.id.btn_update)
         lastCheckedTextView = findViewById(R.id.tv_last_checked)
         updateContentTextView = findViewById(R.id.tv_update_content)
+        viewUpdateLogButton = findViewById(R.id.btn_view_update_log)
         
         // 初始状态
         progressBar.visibility = View.GONE
@@ -145,6 +147,11 @@ class CheckUpdateActivity : AppCompatActivity() {
                     showUpdateConfirmDialog(latestUpdateInfo!!)
                 }
             }
+        }
+        
+        // 查看更新日志按钮点击事件
+        viewUpdateLogButton.setOnClickListener {
+            startActivity(Intent(this, UpdateLogActivity::class.java))
         }
     }
     

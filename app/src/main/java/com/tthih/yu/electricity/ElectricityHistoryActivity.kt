@@ -55,21 +55,40 @@ class ElectricityHistoryActivity : AppCompatActivity() {
             try {
                 val electricityData = repository.getElectricityData()
                 if (electricityData != null) {
-                    // 创建一条新的历史记录
+                    // 检测电量变化并记录
+                    val changed = repository.checkAndRecordElectricityChange(electricityData)
+                    
+                    if (changed) {
+                        Log.d("ElectricityHistory", "检测到电费变化并记录到历史")
+                    } else {
+                        // 即使没有变化，也确保今天有记录
+                        // 检查今天是否已有记录
+                        val today = Calendar.getInstance()
+                        val year = today.get(Calendar.YEAR)
+                        val month = today.get(Calendar.MONTH) + 1
+                        val day = today.get(Calendar.DAY_OF_MONTH)
+                        
+                        val todayRecords = repository.getHistoryByDate(year, month, day)
+                        
+                        if (todayRecords.isEmpty()) {
+                            // 如果今天没有记录，创建一条零变化的记录
                     val historyData = ElectricityHistoryData(
                         id = 0,
                         date = Date(),
                         balance = electricityData.balance.toDouble(),
                         building = electricityData.building,
                         roomId = electricityData.roomId,
-                        usage = 0.0,
-                        recharge = 0.0
+                                usage = 0.0,  // 零用电变化
+                                recharge = 0.0 // 零充值变化
                     )
                     
                     // 保存到数据库
-                    saveHistoryDataToDatabase(listOf(historyData))
-                    
-                    Log.d("ElectricityHistory", "启动时创建电费记录: 余额=${electricityData.balance}")
+                            repository.saveElectricityHistoryData(historyData)
+                            Log.d("ElectricityHistory", "为今天创建零变化电费记录: 余额=${electricityData.balance}")
+                        } else {
+                            Log.d("ElectricityHistory", "今天已有${todayRecords.size}条记录，无需创建新记录")
+                        }
+                    }
                 }
             } catch (e: Exception) {
                 Log.e("ElectricityHistory", "启动时刷新电费数据失败: ${e.message}", e)
@@ -222,13 +241,15 @@ class ElectricityHistoryActivity : AppCompatActivity() {
                     }
                 }
                 
-                // 更新月度总结信息
-                updateMonthlySummary(totalUsage, totalRecharge)
+                // 更新月度总结信息 - 转换用电金额为用电度数（按照每度电费0.5元估算）
+                val estimatedKWh = totalUsage / 0.5 // 约0.5元/度电
+                updateMonthlySummary(estimatedKWh, totalRecharge)
                 
                 // 更新日历适配器
                 updateCalendarAdapter()
                 
                 Log.d("ElectricityHistory", "日历数据加载完成，共有${historyMap.size}天的数据")
+                Log.d("ElectricityHistory", "月度统计: 总用电金额=${totalUsage}元 (约${estimatedKWh}度), 总充值=${totalRecharge}元")
                 
             } catch (e: Exception) {
                 Log.e("ElectricityHistory", "加载历史数据失败: ${e.message}", e)
@@ -252,9 +273,58 @@ class ElectricityHistoryActivity : AppCompatActivity() {
     private suspend fun saveHistoryDataToDatabase(dataList: List<ElectricityHistoryData>) {
         try {
             val historyDao = ElectricityDatabase.getDatabase(this).electricityHistoryDao()
+            
             for (data in dataList) {
-                historyDao.insertHistory(data)
+                // 查询同一天的历史记录
+                val calendar = Calendar.getInstance()
+                calendar.time = data.date
+                val year = calendar.get(Calendar.YEAR)
+                val month = calendar.get(Calendar.MONTH) + 1
+                val day = calendar.get(Calendar.DAY_OF_MONTH)
+                
+                val todayRecords = repository.getHistoryByDate(year, month, day)
+                var finalData = data
+                
+                // 如果同一天已有记录，检查是否需要合并变化数据
+                if (todayRecords.isNotEmpty()) {
+                    // 获取今天已有的用电和充值总和
+                    val existingUsage = todayRecords.sumOf { it.usage }
+                    val existingRecharge = todayRecords.sumOf { it.recharge }
+                    
+                    // 如果新数据有变化信息，与已有数据合并
+                    if (data.usage > 0 || data.recharge > 0) {
+                        finalData = ElectricityHistoryData(
+                            id = data.id,
+                            date = data.date,
+                            balance = data.balance,
+                            building = data.building,
+                            roomId = data.roomId,
+                            usage = existingUsage + data.usage,
+                            recharge = existingRecharge + data.recharge
+                        )
+                        
+                        Log.d("ElectricityHistory", "合并同一天的变化数据: 用电 ${existingUsage} + ${data.usage} = ${finalData.usage}, " +
+                                "充值 ${existingRecharge} + ${data.recharge} = ${finalData.recharge}")
+                    } else {
+                        // 如果新数据没有变化，保留已有的变化数据
+                        finalData = ElectricityHistoryData(
+                            id = data.id,
+                            date = data.date,
+                            balance = data.balance,
+                            building = data.building,
+                            roomId = data.roomId,
+                            usage = existingUsage,
+                            recharge = existingRecharge
+                        )
+                        
+                        Log.d("ElectricityHistory", "保留同一天的已有变化数据: 用电 ${existingUsage}, 充值 ${existingRecharge}")
+                    }
+                }
+                
+                // 保存到数据库
+                historyDao.insertHistory(finalData)
             }
+            
             Log.d("ElectricityHistory", "成功保存${dataList.size}条历史记录到数据库")
         } catch (e: Exception) {
             Log.e("ElectricityHistory", "保存历史数据到数据库失败: ${e.message}", e)

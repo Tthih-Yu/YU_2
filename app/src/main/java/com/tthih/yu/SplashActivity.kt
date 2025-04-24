@@ -1,11 +1,22 @@
 package com.tthih.yu
 
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.os.Looper
+import android.Manifest
+import android.app.PendingIntent
+import android.content.DialogInterface
+import android.content.pm.ShortcutManager
+import android.net.Uri
+import android.provider.Settings
+import android.widget.Toast
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.appcompat.app.AlertDialog
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.Image
@@ -25,17 +36,88 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.content.ContextCompat
+import androidx.core.content.pm.ShortcutInfoCompat
+import androidx.core.content.pm.ShortcutManagerCompat
+import androidx.core.graphics.drawable.IconCompat
+import com.tthih.yu.ShortcutBroadcastReceiver
 import com.tthih.yu.ui.theme.YUTheme
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.withContext
+import android.util.Log
 
 class SplashActivity : ComponentActivity() {
+    /* // Temporarily commented out - move to MainActivity later
+    // 权限请求回调
+    private val requestPermissionLauncher = registerForActivityResult(
+        ActivityResultContracts.RequestMultiplePermissions()
+    ) { permissions ->
+        var allGranted = true
+
+        permissions.entries.forEach {
+            if (!it.value) {
+                allGranted = false
+            }
+        }
+
+        if (allGranted) {
+            // 所有权限都已授予，继续操作
+            checkFirstLaunch()
+        } else {
+            // 权限未完全授予，仍然继续
+            checkFirstLaunch() // 直接继续
+        }
+    }
+    */
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // 检查是否是第一次启动应用
+
+        // 检查权限
+        // checkPermissions() // <-- REMOVED THIS CALL
+        checkFirstLaunch() // <-- CALL THIS DIRECTLY
+    }
+
+    /* // Temporarily commented out - move to MainActivity later
+    private fun checkPermissions() {
+        val permissions = mutableListOf<String>()
+
+        // 添加需要请求的权限
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+            // Android 13及以上
+            permissions.add(Manifest.permission.POST_NOTIFICATIONS)
+        }
+
+        // 在Android 8.0以上，桌面快捷方式权限不需要显式授权
+
+        if (permissions.isEmpty()) {
+            // 没有需要请求的权限，直接继续
+            checkFirstLaunch()
+            return
+        }
+
+        // 检查是否需要请求权限
+        val permissionsToRequest = permissions.filter {
+            ContextCompat.checkSelfPermission(this, it) != PackageManager.PERMISSION_GRANTED
+        }
+
+        if (permissionsToRequest.isEmpty()) {
+            // 已有所有权限，继续操作
+            checkFirstLaunch()
+        } else {
+            // 请求权限
+            requestPermissionLauncher.launch(permissionsToRequest.toTypedArray())
+        }
+    }
+    */
+
+    private fun checkFirstLaunch() {
         val preferences = getSharedPreferences("YU_PREFS", MODE_PRIVATE)
         val isFirstLaunch = preferences.getBoolean("IS_FIRST_LAUNCH", true)
         
-        // 如果不是第一次启动，直接跳转到主页面
         if (!isFirstLaunch) {
             navigateToMainActivity()
             return
@@ -45,11 +127,84 @@ class SplashActivity : ComponentActivity() {
             YUTheme {
                 SplashScreen(
                     onStartClick = {
-                        // 点击"立即开始"按钮后，更新首次启动状态并跳转到主页面
                         preferences.edit().putBoolean("IS_FIRST_LAUNCH", false).apply()
+                        // Launch shortcut creation in background
+                        createShortcutAsync()
                         navigateToMainActivity()
                     }
                 )
+            }
+        }
+    }
+    
+    // New async function for shortcut creation
+    private fun createShortcutAsync() {
+        lifecycleScope.launch(Dispatchers.IO) { // Perform preparation in background
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    val shortcutManager = getSystemService(ShortcutManager::class.java)
+                    if (shortcutManager != null && shortcutManager.isRequestPinShortcutSupported) {
+                        val shortcutIntent = Intent(this@SplashActivity, SplashActivity::class.java).apply {
+                            action = Intent.ACTION_MAIN
+                            addCategory(Intent.CATEGORY_LAUNCHER)
+                        }
+                        
+                        // Icon loading now in background
+                        val icon = IconCompat.createWithResource(this@SplashActivity, R.mipmap.ic_launcher)
+                        
+                        val pinShortcutInfo = ShortcutInfoCompat.Builder(this@SplashActivity, "yu_app_shortcut")
+                            .setIntent(shortcutIntent)
+                            .setShortLabel(getString(R.string.app_name))
+                            .setIcon(icon)
+                            .build()
+                        
+                        val successCallbackIntent = Intent(this@SplashActivity, ShortcutBroadcastReceiver::class.java)
+                        val successCallback = PendingIntent.getBroadcast(
+                            this@SplashActivity, 0,
+                            successCallbackIntent,
+                            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                                PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+                            } else {
+                                PendingIntent.FLAG_UPDATE_CURRENT
+                            }
+                        )
+                        
+                        // Switch back to main thread to request pin shortcut (interacts with UI)
+                        withContext(Dispatchers.Main) {
+                            ShortcutManagerCompat.requestPinShortcut(
+                                this@SplashActivity, pinShortcutInfo, successCallback.intentSender
+                            )
+                        }
+                        
+                        val preferences = getSharedPreferences("YU_PREFS", MODE_PRIVATE)
+                        preferences.edit().putBoolean("SHORTCUT_REQUESTED", true).apply()
+                    } else {
+                        // Still show Toast on Main thread if needed
+                        withContext(Dispatchers.Main) {
+                            Toast.makeText(this@SplashActivity, "您的设备不支持创建桌面快捷方式", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } else {
+                    // Legacy shortcut creation (already uses broadcast, likely okay)
+                    val shortcutIntent = Intent(this@SplashActivity, SplashActivity::class.java).apply {
+                        action = Intent.ACTION_MAIN
+                        addCategory(Intent.CATEGORY_LAUNCHER)
+                    }
+                    val intent = Intent().apply {
+                        putExtra(Intent.EXTRA_SHORTCUT_INTENT, shortcutIntent)
+                        putExtra(Intent.EXTRA_SHORTCUT_NAME, getString(R.string.app_name))
+                        putExtra(Intent.EXTRA_SHORTCUT_ICON_RESOURCE, 
+                            Intent.ShortcutIconResource.fromContext(this@SplashActivity, R.mipmap.ic_launcher))
+                        action = "com.android.launcher.action.INSTALL_SHORTCUT"
+                    }
+                    // Send broadcast from background is fine
+                    sendBroadcast(intent)
+                    
+                    val preferences = getSharedPreferences("YU_PREFS", MODE_PRIVATE)
+                    preferences.edit().putBoolean("SHORTCUT_CREATED", true).apply()
+                }
+            } catch (e: Exception) {
+                Log.e("SplashActivity", "Error creating shortcut", e)
             }
         }
     }

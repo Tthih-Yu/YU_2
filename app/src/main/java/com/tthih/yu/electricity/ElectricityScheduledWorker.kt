@@ -65,32 +65,15 @@ class ElectricityScheduledWorker(
                     repository.saveElectricityData(electricityData)
                 }
                 
-                // 创建历史记录
-                val lastData = withContext(Dispatchers.IO) {
-                    repository.getLastElectricityData()
+                // 检测电量变化并记录到历史
+                val changed = withContext(Dispatchers.IO) {
+                    repository.checkAndRecordElectricityChange(electricityData)
                 }
                 
-                if (lastData != null && lastData.id != electricityData.id) {
-                    // 前后余额差值
-                    val balanceChange = electricityData.balance - lastData.balance
-                    
-                    // 创建历史记录数据
-                    val historyData = ElectricityHistoryData(
-                        date = java.util.Date(),
-                        balance = electricityData.balance.toDouble(),
-                        building = electricityData.building,
-                        roomId = electricityData.roomId,
-                        usage = if (balanceChange < 0) abs(balanceChange.toDouble()) else 0.0,
-                        recharge = if (balanceChange > 0) balanceChange.toDouble() else 0.0
-                    )
-                    
-                    // 保存历史记录
-                    withContext(Dispatchers.IO) {
-                        repository.saveElectricityHistoryData(historyData)
-                    }
-                    
-                    Log.d(TAG, "已记录电费历史数据: 余额=${historyData.balance}元, " + 
-                          "用电=${historyData.usage}元, 充值=${historyData.recharge}元")
+                if (changed) {
+                    Log.d(TAG, "电费数据有变化，已更新历史记录")
+                } else {
+                    Log.d(TAG, "电费数据无变化")
                 }
                 
                 // 更新所有小部件

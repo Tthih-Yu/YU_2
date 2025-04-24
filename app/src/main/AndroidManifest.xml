@@ -13,6 +13,9 @@
     <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" />
 
+    <!-- Permission to install shortcuts (primarily for pre-Oreo) -->
+    <uses-permission android:name="com.android.launcher.permission.INSTALL_SHORTCUT" />
+
     <application
         android:name=".electricity.ElectricityApplication"
         android:allowBackup="true"
@@ -100,6 +103,12 @@
             android:label="检查更新"
             android:theme="@style/Theme.YU"
             android:parentActivityName=".AboutActivity" />
+            
+        <activity
+            android:name=".about.UpdateLogActivity"
+            android:label="更新日志"
+            android:theme="@style/Theme.YU"
+            android:parentActivityName=".about.CheckUpdateActivity" />
             
         <activity
             android:name=".about.AppIntroActivity"
@@ -204,6 +213,56 @@
             android:exported="false"
             android:configChanges="orientation|screenSize" 
             android:theme="@style/Theme.AppCompat.Light.NoActionBar" />
+            
+        <!-- Schedule Widget Provider -->
+        <receiver
+            android:name=".schedule.ScheduleWidgetProvider"
+            android:exported="true"
+            android:label="今日课表 (4x2)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.tthih.yu.schedule.ACTION_REFRESH_SCHEDULE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/schedule_widget_info" />
+        </receiver>
+        
+        <!-- Schedule Widget Provider (Large 4x4) -->
+        <receiver
+            android:name=".schedule.ScheduleWidgetProviderLarge"
+            android:exported="true"
+            android:label="今日课表 (4x4)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                 <action android:name="com.tthih.yu.schedule.ACTION_REFRESH_SCHEDULE_WIDGET_LARGE" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/schedule_widget_info_large" />
+        </receiver>
+
+        <!-- Schedule Widget Service -->
+        <service
+            android:name=".schedule.ScheduleWidgetService"
+            android:permission="android.permission.BIND_REMOTEVIEWS"
+            android:exported="false" />
+            
+        <!-- 电费迷你小组件 (2x1) -->
+        <receiver
+            android:name=".electricity.ElectricitySlimWidgetProvider"
+            android:exported="true"
+            android:label="电费监控 (2x1)">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="android.appwidget.action.APPWIDGET_ENABLED" />
+                <action android:name="android.appwidget.action.APPWIDGET_DELETED" />
+                <action android:name="com.tthih.yu.electricity.ACTION_REFRESH_SLIM_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/electricity_slim_widget_info" />
+        </receiver>
             
     </application>
 

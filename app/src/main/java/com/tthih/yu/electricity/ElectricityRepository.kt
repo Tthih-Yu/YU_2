@@ -708,8 +708,27 @@ class ElectricityRepository(private val context: Context) {
     suspend fun addElectricityHistory(data: ElectricityData) {
         withContext(Dispatchers.IO) {
             try {
+                // 获取前一条记录，计算余额变化
+                val previousRecord = getLastElectricityData()
+                var usage = 0.0
+                var recharge = 0.0
+                
+                if (previousRecord != null) {
+                    val balanceDiff = data.balance - previousRecord.balance
+                    Log.d("ElectricityRepo", "余额变化: ${balanceDiff}元 (之前: ${previousRecord.balance}元, 当前: ${data.balance}元)")
+                    
+                    if (balanceDiff > 0) {
+                        // 余额增加，说明充值了
+                        recharge = balanceDiff.toDouble()
+                        Log.d("ElectricityRepo", "检测到充值: ${recharge}元")
+                    } else if (balanceDiff < 0) {
+                        // 余额减少，说明用电了
+                        usage = -balanceDiff.toDouble()
+                        Log.d("ElectricityRepo", "检测到用电: ${usage}元")
+                    }
+                }
+                
                 // 确保数据有效性
-                val validDailyUsage = if (data.dailyUsage > 0f) data.dailyUsage else calculateDailyUsage()
                 val validBalance = if (data.balance >= 0f) data.balance else 0f
                 
                 val historyData = ElectricityHistoryData(
@@ -717,17 +736,65 @@ class ElectricityRepository(private val context: Context) {
                     balance = validBalance.toDouble(),
                     building = data.building,
                     roomId = data.roomId,
-                    usage = validDailyUsage.toDouble(),
-                    // 保存当前估计剩余天数信息
-                    recharge = data.estimatedDays.toDouble() 
+                    usage = usage,         // 实际用电变化量，而不是日均用电估计
+                    recharge = recharge    // 实际充值金额，而不是估计剩余天数
                 )
                 
-                Log.d("ElectricityRepo", "添加历史记录: 余额=${validBalance}元, 日均用电=${validDailyUsage}元/天, 估计剩余天数=${data.estimatedDays}天")
+                Log.d("ElectricityRepo", "添加历史记录: 余额=${validBalance}元, 用电变化=${usage}元, 充值金额=${recharge}元")
                 
                 val historyDao = ElectricityDatabase.getDatabase(context).electricityHistoryDao()
                 historyDao.insertHistory(historyData)
             } catch (e: Exception) {
                 Log.e("ElectricityRepo", "添加电费历史记录失败: ${e.message}", e)
+            }
+        }
+    }
+    
+    // 根据电费数据变化计算用电量和充值金额
+    suspend fun calculateElectricityChanges(newData: ElectricityData): Pair<Double, Double> {
+        return withContext(Dispatchers.IO) {
+            try {
+                // 获取前一条记录
+                val previousRecord = getLastElectricityData()
+                var usage = 0.0
+                var recharge = 0.0
+                
+                if (previousRecord != null) {
+                    val balanceDiff = newData.balance - previousRecord.balance
+                    
+                    if (balanceDiff > 0) {
+                        // 余额增加，说明充值了
+                        recharge = balanceDiff.toDouble()
+                    } else if (balanceDiff < 0) {
+                        // 余额减少，说明用电了
+                        usage = -balanceDiff.toDouble()
+                    }
+                }
+                
+                Pair(usage, recharge)
+            } catch (e: Exception) {
+                Log.e("ElectricityRepo", "计算电量变化异常: ${e.message}", e)
+                Pair(0.0, 0.0)
+            }
+        }
+    }
+    
+    // 检测并记录电费变化
+    suspend fun checkAndRecordElectricityChange(newData: ElectricityData): Boolean {
+        return withContext(Dispatchers.IO) {
+            try {
+                val previousRecord = getLastElectricityData()
+                
+                // 如果没有之前的记录，或者余额有变化，则添加记录
+                if (previousRecord == null || previousRecord.balance != newData.balance) {
+                    addElectricityHistory(newData)
+                    return@withContext true
+                }
+                
+                return@withContext false
+            } catch (e: Exception) {
+                Log.e("ElectricityRepo", "检测电费变化异常: ${e.message}", e)
+                return@withContext false
             }
         }
     }

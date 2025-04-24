@@ -169,91 +169,48 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
     }
     
     // 完善电费数据更新和存储逻辑
-    private suspend fun updateElectricityData(result: ElectricityData): Boolean {
+    fun updateElectricityData(result: ElectricityData): Boolean {
         try {
-            // 获取上一次保存的数据
-            val lastData = withContext(Dispatchers.IO) {
-                repository.getLastElectricityData()
-            }
-            
+            // 设置当前电费数据
             _electricityData.value = result
             
-            // 保存电费数据
+            // 保存电费数据到Repository
+            viewModelScope.launch {
             repository.saveElectricityData(result)
             
-            // 获取当前日期和时间
-            val currentDate = Date()
-            
-            // 创建新的历史记录
-            // 如果有上一次查询数据，比较余额变化
-            var recharge = 0.0
-            var usage = 0.0
-            
-            if (lastData != null) {
-                val balanceChange = result.balance - lastData.balance
+                // 检测电量变化并记录历史
+                val changed = repository.checkAndRecordElectricityChange(result)
                 
-                if (balanceChange > 0) {
-                    // 余额增加，记录为充值
-                    recharge = balanceChange.toDouble()
-                    usage = 0.0
-                    Log.d("ElectricityViewModel", "检测到充值: +$recharge 元")
-                } else if (balanceChange < 0) {
-                    // 余额减少，记录为用电
-                    usage = abs(balanceChange.toDouble())
-                    recharge = 0.0
-                    Log.d("ElectricityViewModel", "检测到用电: -$usage 元")
+                if (changed) {
+                    Log.d("ElectricityViewModel", "电费数据有变化，已更新历史记录")
                 } else {
-                    // 余额无变化
-                    recharge = 0.0
-                    usage = 0.0
-                    Log.d("ElectricityViewModel", "余额无变化")
+                    Log.d("ElectricityViewModel", "电费数据无变化")
                 }
-            } else {
-                // 首次查询，不记录变化
-                recharge = 0.0
-                usage = 0.0
-                Log.d("ElectricityViewModel", "首次查询，不记录变化")
-            }
-            
-            // 创建历史记录
-            val historyData = ElectricityHistoryData(
-                id = 0,  // 自动生成ID
-                date = currentDate,
-                balance = result.balance.toDouble(),
-                building = result.building,
-                roomId = result.roomId,
-                usage = usage,
-                recharge = recharge
-            )
-            
-            // 保存到数据库
-            withContext(Dispatchers.IO) {
-                repository.saveElectricityHistoryData(historyData)
-            }
-            
-            // 记录详细日志
-            val dateStr = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault()).format(currentDate)
-            Log.d("ElectricityViewModel", "添加电费历史记录: 日期=$dateStr, 余额=${result.balance}, 充值=$recharge, 用电=$usage")
-            
-            // 刷新当月历史数据
-            val yearMonth = _selectedYearMonth.value ?: getCurrentYearMonth()
-            loadMonthHistory(yearMonth.first, yearMonth.second)
-            
-            // 添加日志记录电量使用趋势
-            getElectricityTrend { trend, percentage ->
-                if (trend != null) {
-                    val trendStr = when (trend) {
-                        UsageTrend.INCREASING -> "上升"
-                        UsageTrend.DECREASING -> "下降"
-                        UsageTrend.STABLE -> "稳定"
+                
+                // 刷新月度历史数据
+                refreshMonthHistoryData()
+                
+                // 记录电量使用趋势分析
+                try {
+                    val currentMonth = getCurrentMonth()
+                    val thisMonthData = repository.getMonthHistory(getCurrentYear(), currentMonth)
+                    if (thisMonthData.isNotEmpty()) {
+                        // 统计本月用电总量
+                        val totalUsage = thisMonthData.sumOf { it.usage }
+                        // 计算平均日用电量
+                        val days = thisMonthData.map { it.getDayOfMonth() }.distinct().size
+                        val avgDailyUsage = if (days > 0) totalUsage / days else 0.0
+                        
+                        Log.d("ElectricityViewModel", "本月至今用电: ${totalUsage}元，已记录${days}天，日均: ${avgDailyUsage}元/天")
                     }
-                    Log.d("ElectricityVM", "电量使用趋势: $trendStr, 变化百分比: $percentage%")
+                } catch (e: Exception) {
+                    Log.e("ElectricityViewModel", "分析电量趋势异常: ${e.message}")
                 }
             }
             
             return true
         } catch (e: Exception) {
-            Log.e("ElectricityVM", "更新电费数据失败: ${e.message}")
+            Log.e("ElectricityViewModel", "更新电费数据异常: ${e.message}", e)
             return false
         }
     }
@@ -363,6 +320,22 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
     private fun getCurrentYearMonth(): Pair<Int, Int> {
         val calendar = Calendar.getInstance()
         return Pair(calendar.get(Calendar.YEAR), calendar.get(Calendar.MONTH) + 1)
+    }
+    
+    // 获取当前年份
+    private fun getCurrentYear(): Int {
+        return Calendar.getInstance().get(Calendar.YEAR)
+    }
+    
+    // 获取当前月份
+    private fun getCurrentMonth(): Int {
+        return Calendar.getInstance().get(Calendar.MONTH) + 1
+    }
+    
+    // 刷新当月历史数据
+    private fun refreshMonthHistoryData() {
+        val yearMonth = _selectedYearMonth.value ?: getCurrentYearMonth()
+        loadMonthHistory(yearMonth.first, yearMonth.second)
     }
     
     // 切换到下一个月

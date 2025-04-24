@@ -41,89 +41,17 @@ import com.tthih.yu.library.LibraryActivity
 import com.tthih.yu.todo.TodoActivity
 import com.tthih.yu.ui.theme.YUTheme
 import java.util.*
+import androidx.lifecycle.lifecycleScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.launch
+import com.tthih.yu.electricity.ElectricityWidgetProvider
+import com.tthih.yu.R
+import com.tthih.yu.AboutActivity
 
 class MainActivity : ComponentActivity() {
     
-    private val PERMISSION_REQUEST_CODE = 100
-    private val requiredPermissions = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-        arrayOf(
-            Manifest.permission.INTERNET,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.READ_MEDIA_IMAGES
-        )
-    } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-        arrayOf(
-            Manifest.permission.INTERNET,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.READ_EXTERNAL_STORAGE
-        )
-    } else {
-        arrayOf(
-            Manifest.permission.INTERNET,
-            Manifest.permission.ACCESS_NETWORK_STATE,
-            Manifest.permission.READ_EXTERNAL_STORAGE,
-            Manifest.permission.WRITE_EXTERNAL_STORAGE
-        )
-    }
-    
-    // 当用户回应权限请求时触发
-    private val requestPermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.RequestMultiplePermissions()
-    ) { permissions ->
-        // 检查所有权限是否都被授予
-        val allGranted = permissions.entries.all { it.value }
-        
-        if (allGranted) {
-            // 如果Android 11及以上需要管理所有文件权限，检查是否已授予
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && 
-                !Environment.isExternalStorageManager()) {
-                requestManageExternalStoragePermission()
-            }
-        } else {
-            // 告知用户缺少必要权限
-            Toast.makeText(
-                this,
-                "应用需要这些权限才能正常工作",
-                Toast.LENGTH_LONG
-            ).show()
-        }
-    }
-    
-    // 当用户从系统设置返回时触发
-    private val storagePermissionLauncher = registerForActivityResult(
-        ActivityResultContracts.StartActivityForResult()
-    ) { 
-        // 无论结果如何都继续使用应用
-    }
-    
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        
-        // 检查并请求权限
-        if (!hasRequiredPermissions()) {
-            requestPermissions()
-        } else {
-            // 如果Android 11及以上需要管理所有文件权限，检查是否已授予
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && 
-                !Environment.isExternalStorageManager()) {
-                requestManageExternalStoragePermission()
-            }
-        }
-        
-        // 检测是否是小米MIUI系统，如果是则提示可能需要关闭优化
-        val manufacturer = Build.MANUFACTURER.lowercase(Locale.getDefault())
-        val model = Build.MODEL.lowercase(Locale.getDefault())
-        
-        if (manufacturer.contains("xiaomi") || 
-            manufacturer.contains("redmi") || 
-            model.contains("mi") || 
-            model.contains("redmi")) {
-            Toast.makeText(
-                this,
-                "小米用户注意：如果应用运行异常，请在设置中禁用MIUI优化并给予所有权限",
-                Toast.LENGTH_LONG
-            ).show()
-        }
         
         enableEdgeToEdge()
         setContent {
@@ -156,37 +84,13 @@ class MainActivity : ComponentActivity() {
             }
         }
         
-        // 初始化电费小部件
-        try {
-            com.tthih.yu.electricity.ElectricityWidgetProvider.updateAllWidgets(this)
-        } catch (e: Exception) {
-            Log.e("MainActivity", "初始化电费小部件异常：${e.message}")
-        }
-    }
-    
-    // 检查是否拥有所有必需权限
-    private fun hasRequiredPermissions(): Boolean {
-        return requiredPermissions.all {
-            ContextCompat.checkSelfPermission(this, it) == PackageManager.PERMISSION_GRANTED
-        }
-    }
-    
-    // 请求必需的权限
-    private fun requestPermissions() {
-        requestPermissionLauncher.launch(requiredPermissions)
-    }
-    
-    // 请求管理所有文件的权限（Android 11及以上）
-    private fun requestManageExternalStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+        // 初始化电费小部件 (异步执行)
+        lifecycleScope.launch(Dispatchers.IO) { // 使用 IO 调度器处理潜在的 I/O
             try {
-                val intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                intent.addCategory("android.intent.category.DEFAULT")
-                intent.data = Uri.parse("package:$packageName")
-                storagePermissionLauncher.launch(intent)
+                ElectricityWidgetProvider.updateAllWidgets(this@MainActivity)
             } catch (e: Exception) {
-                val intent = Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION)
-                storagePermissionLauncher.launch(intent)
+                // 在后台线程记录日志，如果需要在UI线程提示用户，可以使用 withContext(Dispatchers.Main)
+                Log.e("MainActivity", "初始化电费小部件异常：${e.message}")
             }
         }
     }

@@ -85,7 +85,8 @@
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:orientation="horizontal">
+                    android:orientation="horizontal"
+                    android:layout_marginBottom="16dp">
                     
                     <TextView
                         android:layout_width="0dp"
@@ -103,6 +104,19 @@
                         android:textColor="#757575"
                         android:textSize="16sp" />
                 </LinearLayout>
+
+                <com.google.android.material.button.MaterialButton
+                    android:id="@+id/btn_view_update_log"
+                    android:layout_width="match_parent"
+                    android:layout_height="48dp"
+                    android:text="查看更新日志"
+                    android:textColor="#2196F3"
+                    android:textSize="14sp"
+                    app:cornerRadius="24dp"
+                    app:strokeColor="#2196F3"
+                    app:strokeWidth="1dp"
+                    android:backgroundTint="#FFFFFF"
+                    style="@style/Widget.MaterialComponents.Button.OutlinedButton"/>
 
             </LinearLayout>
         </androidx.cardview.widget.CardView>
