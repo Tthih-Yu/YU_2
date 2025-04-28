@@ -4,26 +4,22 @@ import android.content.Context
 import android.content.SharedPreferences
 import android.util.Log
 import androidx.room.Room
+import com.tthih.yu.campuscard.ApiTransaction
+import com.tthih.yu.campuscard.TransactionResponse
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.ResponseBody
-import org.jsoup.Jsoup
 import retrofit2.Response
 import java.io.IOException
 import java.text.SimpleDateFormat
 import java.util.*
 
-// Constants - Adjust these based on actual URLs and form field names
+// Constants - Updated for direct card system interaction
 private const val TAG = "CampusCardRepository"
-private const val CAS_LOGIN_URL = "https://webvpn.ahpu.edu.cn/http/webvpn40a1cc242791dfe16b3115ea5846a65e/authserver/login?service=https%3A%2F%2Fwebvpn.ahpu.edu.cn%2Fenlink%2Fapi%2Fclient%2Fcallback%2Fcas"
-private const val CARD_SERVICE_BASE_URL_EHALL = "http://ehall.ahpu.edu.cn/publicapp/sys/myyktzd/mobile/"
-private const val WEBVPN_PREFIX_PLACEHOLDER = "/http/webvpn<SESSION_SPECIFIC_PART>/"
+private const val API_BASE_URL = "http://220.178.164.65:8053" // Direct API URL
 private const val PREFS_NAME = "CampusCardPrefs"
-private const val PREF_USERNAME = "username"
-private const val PREF_PASSWORD = "password" // Consider EncryptedSharedPreferences for real app
-private const val PREF_WEBVPN_PREFIX = "webvpn_prefix"
+private const val PREF_ACCOUNT = "campus_card_account" // Store account ID (学号)
 
-class CampusCardRepository {
+class CampusCardRepository private constructor(context: Context) {
     private var database: CampusCardDatabase? = null
     private val apiService = NetworkModule.apiService
     private var sharedPreferences: SharedPreferences? = null
@@ -51,37 +47,50 @@ class CampusCardRepository {
         }
     }
 
-    fun initialize(context: Context) {
-        if (database == null) {
-            getDatabase(context)
-        }
-        if (sharedPreferences == null) {
-            getSharedPreferences(context)
+    // <<< ADD Companion Object for Singleton >>>
+    companion object {
+        @Volatile
+        private var INSTANCE: CampusCardRepository? = null
+
+        fun getInstance(context: Context): CampusCardRepository {
+            return INSTANCE ?: synchronized(this) {
+                val instance = CampusCardRepository(context.applicationContext) // Pass application context
+                INSTANCE = instance
+                instance
+            }
         }
     }
+    // <<< End Companion Object >>>
+    
+    init { // <<< Use init block instead of separate initialize function >>>
+        // Initialize DB and SharedPreferences immediately
+        database = Room.databaseBuilder(
+            context.applicationContext,
+            CampusCardDatabase::class.java,
+            "campus_card_database"
+        ).fallbackToDestructiveMigration().build()
 
-    // --- Credential Management ---
-    fun saveCredentials(username: String, password: String?) {
+        sharedPreferences = context.applicationContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
+        Log.d(TAG, "CampusCardRepository Initialized (Singleton)")
+    }
+
+    // --- Account Management ---
+    fun saveAccount(account: String?) {
         sharedPreferences?.edit()?.apply {
-            putString(PREF_USERNAME, username)
-            if (password != null) { // Only save if provided
-                putString(PREF_PASSWORD, password) // !! Insecure !! Use EncryptedPrefs
+             if (account != null) {
+                 putString(PREF_ACCOUNT, account)
+             } else {
+                 remove(PREF_ACCOUNT)
             }
             apply()
         }
+         Log.d(TAG, "Saved account: $account")
     }
 
-    fun getUsername(): String? = sharedPreferences?.getString(PREF_USERNAME, null)
-    fun getPassword(): String? = sharedPreferences?.getString(PREF_PASSWORD, null) // !! Insecure !!
-
-    // --- WebVPN Prefix Management ---
-    private fun saveWebvpnPrefix(prefix: String) {
-        sharedPreferences?.edit()?.putString(PREF_WEBVPN_PREFIX, prefix)?.apply()
-    }
-
-    // Make internal to be accessible from ViewModel in the same module
-    internal fun getWebvpnPrefix(): String? {
-        return sharedPreferences?.getString(PREF_WEBVPN_PREFIX, null)
+    fun getAccount(): String? {
+        val account = sharedPreferences?.getString(PREF_ACCOUNT, null)
+         Log.d(TAG, "Retrieved account: $account")
+        return account
     }
 
     // --- API Call Logic ---
@@ -92,205 +101,133 @@ class CampusCardRepository {
         data class Error(val message: String, val exception: Exception? = null) : Result<Nothing>()
     }
 
-    // Function to perform login
-    suspend fun login(): Result<Boolean> = withContext(Dispatchers.IO) {
-        val username = getUsername()
-        val password = getPassword()
-        if (username == null || password == null) {
-            return@withContext Result.Error("用户名或密码未设置")
-        }
-
-        NetworkModule.clearCookies() // Clear old cookies before login
-
-        try {
-            // 1. Get CAS Login Page to extract tokens (lt, execution, etc.)
-            val loginPageResponse = apiService.getCasLoginPage(CAS_LOGIN_URL)
-            if (!loginPageResponse.isSuccessful || loginPageResponse.body() == null) {
-                return@withContext Result.Error("获取登录页面失败: ${loginPageResponse.code()}")
-            }
-
-            val loginPageHtml = loginPageResponse.body()!!.string()
-            val loginFormData = parseCasLoginForm(loginPageHtml)
-            if (loginFormData["lt"] == null || loginFormData["execution"] == null) {
-                return@withContext Result.Error("无法解析登录表单")
-            }
-
-            // Add username and password
-            loginFormData["username"] = username
-            loginFormData["password"] = password
-            // Add other potential required fields like 'rememberMe'
-            // loginFormData["rememberMe"] = "true"
-
-            // 2. Post CAS Login Credentials
-            val casResponse = apiService.postCasLogin(CAS_LOGIN_URL, loginFormData)
-            if (!casResponse.isSuccessful) {
-                return@withContext Result.Error("CAS登录失败: ${casResponse.code()}")
-            }
-
-            // 3. Check CAS Response - Looking for a redirect (302) with a 'ticket'
-            // The actual target URL might be in the 'Location' header
-            val locationHeader = casResponse.headers()["Location"]
-            if (casResponse.code() != 302 || locationHeader == null || !locationHeader.contains("ticket=")) {
-                Log.w(TAG, "CAS login did not result in expected redirect. Code: ${casResponse.code()}, Location: $locationHeader")
-                // Might need to parse the response body if it's not a 302
-                // return@withContext Result.Error("CAS认证失败，请检查用户名密码")
-                // For now, assume success and try to proceed, relying on cookies being set
-            }
-            
-            // 4. Extract WebVPN prefix from the redirect URL (if needed)
-            // This is tricky and depends on the exact flow. The prefix might be stable or session-based.
-            // Let's assume we get it from a redirect like the one in 1744560484928_raw
-            // location: https://webvpn.ahpu.edu.cn/http/webvpn<session_part>/publicapp/...
-            val webVpnRedirectUrl = locationHeader // Use the actual redirect URL from login or subsequent request
-            val prefix = extractWebvpnPrefix(webVpnRedirectUrl ?: "") // Implement this helper
-            if (prefix == null) {
-                Log.w(TAG, "Could not extract WebVPN prefix from: $webVpnRedirectUrl")
-                 // Try accessing a known endpoint and get prefix from its URL after redirect
-                 // Use a known static resource or a simple API endpoint if available
-                val knownUrlToAccess = CARD_SERVICE_BASE_URL_EHALL + "index.do" // Example
-                try {
-                     val knownEndpointResponse = apiService.getWebvpnService(knownUrlToAccess)
-                     // Use property access for request and url
-                     val finalUrl = knownEndpointResponse.raw().request.url.toString()
-                     val extractedPrefix = extractWebvpnPrefix(finalUrl)
-                     if (extractedPrefix != null) {
-                         saveWebvpnPrefix(extractedPrefix)
-                         Log.i(TAG, "Extracted WebVPN prefix from known endpoint: $extractedPrefix")
-                     } else {
-                         Log.e(TAG, "Failed to determine WebVPN prefix after accessing known URL: $finalUrl")
-                         return@withContext Result.Error("无法确定WebVPN路径")
-                     }
-                } catch (knownUrlError: Exception) {
-                     Log.e(TAG, "Error accessing known URL to determine WebVPN prefix", knownUrlError)
-                     return@withContext Result.Error("访问WebVPN服务失败: ${knownUrlError.message}")
-                }
-            } else {
-                 saveWebvpnPrefix(prefix)
-                 Log.i(TAG, "Extracted WebVPN prefix from initial redirect: $prefix")
-            }
-
-            Result.Success(true) // Login sequence successful (or presumed successful)
-
-        } catch (e: IOException) {
-            Log.e(TAG, "Login network error", e)
-            Result.Error("网络错误: ${e.message}", e)
-        } catch (e: Exception) {
-            Log.e(TAG, "Login unexpected error", e)
-            Result.Error("登录时发生未知错误: ${e.message}", e)
-        }
-    }
-
     // Function to fetch card info
     suspend fun fetchCardInfo(): Result<CardInfo> = withContext(Dispatchers.IO) {
-        val prefix = getWebvpnPrefix() ?: return@withContext loginAndRetry { fetchCardInfo() }
-        // !! Adjust the actual API path based on network analysis !!
-        val url = buildWebvpnUrl(prefix, "/publicapp/sys/myyktzd/api/account/info.do") 
-        
-        try {
-            val response = apiService.getCardInfo(url)
-            val responseBody = response.body()
-            if (response.isSuccessful && responseBody?.code == 200) {
-                mapApiCardInfoToUi(responseBody.data)?.let {
-                    Result.Success(it)
-                } ?: Result.Error("卡片信息解析失败 (空数据)")
-            } else {
-                Result.Error("获取卡片信息失败: ${response.code()} - ${responseBody?.message ?: response.message()}")
-            }
-        } catch (e: Exception) {
-            Log.e(TAG, "fetchCardInfo Exception", e)
-            Result.Error("获取卡片信息异常: ${e.message}", e)
+        val prefix = "" // Removed prefix usage
+        val account = getAccount()
+        if (account == null) {
+            Log.e(TAG, "Cannot fetch card info: Account number is null.")
+            return@withContext Result.Error("未找到校园卡账号，请先登录")
         }
+
+        Log.w(TAG, "fetchCardInfo - Using placeholder logic. Needs rewrite for direct API.")
+        // Placeholder - return error or empty
+        Result.Error("获取卡片信息功能待更新")
     }
     
     // Function to fetch monthly bill summary
     suspend fun fetchMonthBillSummary(year: Int, month: Int): Result<MonthBill> = withContext(Dispatchers.IO) {
-        val prefix = getWebvpnPrefix() ?: return@withContext loginAndRetry { fetchMonthBillSummary(year, month) }
-        // !! Adjust API path and parameters as needed !!
-        val url = buildWebvpnUrl(prefix, "/publicapp/sys/myyktzd/api/bill/summary.do?year=$year&month=${String.format("%02d", month)}") 
-        
-        try {
-            val response = apiService.getMonthBill(url)
-            val responseBody = response.body()
-            if (response.isSuccessful && responseBody?.code == 200) {
-                mapApiMonthBillToUi(responseBody.data)?.let {
-                    Result.Success(it)
-                } ?: Result.Error("月账单解析失败 (空数据)")
-            } else {
-                Result.Error("获取月账单失败: ${response.code()} - ${responseBody?.message ?: response.message()}")
-            }
-        } catch (e: Exception) {
-             Log.e(TAG, "fetchMonthBillSummary Exception", e)
-            Result.Error("获取月账单异常: ${e.message}", e)
+        val prefix = "" // Removed prefix usage
+        val account = getAccount()
+        if (account == null) {
+            Log.e(TAG, "Cannot fetch month bill summary: Account number is null.")
+            return@withContext Result.Error("未找到校园卡账号，请先登录")
         }
+
+        Log.w(TAG, "fetchMonthBillSummary - Using placeholder logic. Needs rewrite for direct API.")
+        // Placeholder - return error or empty
+        Result.Error("获取月账单功能待更新")
     }
     
     // Function to fetch consumption trend
     suspend fun fetchConsumeTrend(year: Int, month: Int): Result<ConsumeTrend> = withContext(Dispatchers.IO) {
-        val prefix = getWebvpnPrefix() ?: return@withContext loginAndRetry { fetchConsumeTrend(year, month) }
-        // !! Adjust API path and parameters !!
-        val url = buildWebvpnUrl(prefix, "/publicapp/sys/myyktzd/api/consume/trend.do?year=$year&month=${String.format("%02d", month)}") 
-        
-        try {
-            val response = apiService.getConsumeTrend(url)
-            val responseBody = response.body()
-            if (response.isSuccessful && responseBody?.code == 200) {
-                mapApiConsumeTrendToUi(responseBody.data)?.let {
-                    Result.Success(it)
-                } ?: Result.Error("消费趋势解析失败 (空数据)")
-            } else {
-                Result.Error("获取消费趋势失败: ${response.code()} - ${responseBody?.message ?: response.message()}")
-            }
-        } catch (e: Exception) {
-             Log.e(TAG, "fetchConsumeTrend Exception", e)
-            Result.Error("获取消费趋势异常: ${e.message}", e)
+        val prefix = "" // Removed prefix usage
+        val account = getAccount()
+        if (account == null) {
+            Log.e(TAG, "Cannot fetch consume trend: Account number is null.")
+            return@withContext Result.Error("未找到校园卡账号，请先登录")
         }
+
+        Log.w(TAG, "fetchConsumeTrend - Using placeholder logic. Needs rewrite for direct API.")
+        // Placeholder - return error or empty
+        Result.Error("获取消费趋势功能待更新")
     }
 
     // Function to fetch transactions for a specific month
-    suspend fun fetchTransactions(year: Int, month: Int, page: Int = 1, pageSize: Int = 20): Result<List<CampusCardTransaction>> = withContext(Dispatchers.IO) {
-        val prefix = getWebvpnPrefix() ?: return@withContext loginAndRetry { fetchTransactions(year, month, page, pageSize) }
-        
-        val apiUrl = buildWebvpnUrl(prefix, "/publicapp/sys/myyktzd/api/getConsumeDetailByMonth.do") // API from README
-        val params = mapOf(
-            "year" to year.toString(),
-            "month" to String.format("%02d", month),
-            "pageNumber" to page.toString(),
-            "pageSize" to pageSize.toString()
-        )
+    suspend fun fetchTransactions(page: Int = 1): Result<Pair<List<CampusCardTransaction>, Int>> = withContext(Dispatchers.IO) {
+        val account = getAccount()
+        if (account == null) {
+            Log.e(TAG, "Cannot fetch transactions: Account number is null.")
+            return@withContext Result.Error("未找到校园卡账号，请先登录")
+        }
+
+        // Attempt to get hallticket/sourcetype from cookies if needed by the API
+        // val hallticket = NetworkModule.getCookiesForUrl(API_BASE_URL).find { it.name == "hallticket" }?.value
+        // if (hallticket == null) { Log.w(TAG, "Hallticket cookie not found, API call might fail if sourcetype is required.") }
 
         try {
-            val response = apiService.getConsumeDetailByMonth(apiUrl, params)
-            val responseBody = response.body()
-            if (response.isSuccessful && responseBody?.code == 200) {
-                val apiTransactions = responseBody.data?.transactions ?: emptyList()
-                // Use explicit type for mapNotNull lambda parameter
-                val uiTransactions = apiTransactions.mapNotNull { apiTx: ApiTransaction? -> mapApiTransactionToUi(apiTx) }
-                // Save fetched transactions to cache
-                if (uiTransactions.isNotEmpty()) {
-                    database?.campusCardDao()?.insertAll(uiTransactions)
+            Log.d(TAG, "Fetching transactions for account: $account, page: $page")
+            // Make the actual API call using Retrofit service
+            val response = apiService.getTransactions(
+                account = account,
+                page = page
+                // sourceType = hallticket // Pass hallticket as sourcetype if API requires it
+            )
+
+            if (response.isSuccessful && response.body() != null) {
+                val responseData = response.body()!!
+                // Map API response to UI model
+                val apiRows = responseData.rows // Get the nullable list first
+                
+                Log.d(TAG, "API response: success=${responseData.issucceed}, total=${responseData.total}, rowCount=${apiRows?.size ?: 0}")
+                
+                val transactions = if (apiRows != null) {
+                    apiRows.mapNotNull { apiTx -> mapApiTransactionToUi(apiTx) } // Use explicit lambda parameter name
+                } else {
+                    emptyList()
                 }
-                Result.Success(uiTransactions)
+                
+                // The 'total' field from the API is the total number of records
+                val totalRecords = responseData.total ?: 0
+                // Use the non-null 'transactions' list size
+                val pageSize = if (transactions.isNotEmpty()) transactions.size else 15 // Default page size if list is empty
+                
+                val totalPages = if (totalRecords > 0 && pageSize > 0) {
+                    (totalRecords + pageSize - 1) / pageSize // Ceiling division for total pages
+                } else if (totalRecords == 0 && transactions.isNotEmpty()) {
+                    1 // We have data but total is 0, assume 1 page
+                } else if (totalRecords == 0 && transactions.isEmpty()) {
+                    0 // No data and total is 0, assume 0 pages
+                } else {
+                    1 // Default fallback: assume at least one page if totalRecords > 0 but pageSize is 0 (shouldn't happen)
+                }
+
+                Log.i(TAG, "Successfully fetched ${transactions.size} transactions for page $page. Total calculated pages: $totalPages (from total records: $totalRecords)")
+                
+                // --- Save fetched transactions to the database ---
+                if (transactions.isNotEmpty()) {
+                    try {
+                         database?.campusCardDao()?.insertAll(transactions)
+                         Log.d(TAG, "Saved ${transactions.size} transactions to the database.")
+                    } catch (dbError: Exception) {
+                        Log.e(TAG, "Error saving transactions to database: ${dbError.message}", dbError)
+                        // Optionally propagate this error or handle it (e.g., return a different error state)
+                        // For now, we'll log it and proceed with the fetched data
+                    }
+                }
+                // --- End of saving ---
+                
+                if (transactions.isEmpty() && apiRows?.isNotEmpty() == true) {
+                    // We got API data but couldn't parse any transactions - log the first item to help debug
+                    val firstApiRow = apiRows.firstOrNull()
+                    Log.w(TAG, "Got ${apiRows.size} rows from API but parsed 0 transactions. First row: $firstApiRow")
+                }
+                
+                Result.Success(Pair(transactions, totalPages))
             } else {
-                 Log.e(TAG, "Fetch transactions failed: ${response.code()} - ${response.message()} - ${response.errorBody()?.string()}")
-                 Result.Error("获取交易记录失败: ${response.code()} - ${responseBody?.message ?: response.message()}")
+                // Handle API error response
+                val errorBody = response.errorBody()?.string() ?: "Unknown API error"
+                Log.e(TAG, "API error fetching transactions: Code=${response.code()}, Message=${response.message()}, Body=$errorBody")
+                Result.Error("获取交易记录失败: ${response.message()} (${response.code()})")
             }
+        } catch (e: IOException) {
+            // Handle network errors (e.g., no connection)
+            Log.e(TAG, "Network error fetching transactions: ${e.message}", e)
+            Result.Error("网络错误，请检查连接: ${e.message}")
         } catch (e: Exception) {
-            Log.e(TAG, "Fetch transactions exception", e)
-            Result.Error("获取交易记录异常: ${e.message}", e)
-        }
-    }
-    
-    // Helper function to handle re-login attempt
-    private suspend fun <T> loginAndRetry(action: suspend () -> Result<T>): Result<T> {
-        Log.i(TAG, "WebVPN prefix missing or invalid, attempting re-login...")
-        val loginResult = login()
-        return if (loginResult is Result.Success && loginResult.data) {
-            Log.i(TAG, "Re-login successful, retrying action...")
-            action()
-        } else {
-            Log.e(TAG, "Re-login failed.")
-            val errorMsg = if (loginResult is Result.Error) loginResult.message else "登录失败"
-            Result.Error("需要重新登录，但登录失败: $errorMsg")
+            // Handle other errors (e.g., JSON parsing issues)
+            Log.e(TAG, "Generic error fetching transactions: ${e.message}", e)
+            Result.Error("获取交易记录时出错: ${e.message}")
         }
     }
 
@@ -303,57 +240,23 @@ class CampusCardRepository {
         } ?: emptyList()
     }
     
+    // --- New function to clear all transactions --- 
+    suspend fun clearAllTransactions() {
+        database?.let {
+            withContext<Unit>(Dispatchers.IO) {
+                Log.i(TAG, "Executing DAO clearAllTransactions...")
+                it.campusCardDao().clearAll() // Call the DAO function
+            }
+        }
+        Log.i(TAG, "Finished clearing all transactions in repository.")
+    }
+    
     suspend fun clearCachedTransactions() {
         database?.let {
             withContext<Unit>(Dispatchers.IO) {
                 it.campusCardDao().deleteAllTransactions()
             }
         }
-    }
-
-    // --- Helper & Parsing Functions ---
-
-    private fun parseCasLoginForm(html: String): MutableMap<String, String> {
-        val data = mutableMapOf<String, String>()
-        try {
-            val doc = Jsoup.parse(html)
-            // Find form elements (adjust selectors based on actual HTML)
-            data["lt"] = doc.selectFirst("input[name=lt]")?.attr("value") ?: ""
-            data["dllt"] = doc.selectFirst("input[name=dllt]")?.attr("value") ?: "submit"
-            data["execution"] = doc.selectFirst("input[name=execution]")?.attr("value") ?: ""
-            data["_eventId"] = doc.selectFirst("input[name=_eventId]")?.attr("value") ?: "submit"
-            data["rmShown"] = doc.selectFirst("input[name=rmShown]")?.attr("value") ?: "1"
-        } catch (e: Exception) {
-            Log.e(TAG, "Error parsing CAS login form", e)
-        }
-        // Log parsed form data for debugging
-        Log.d(TAG, "Parsed CAS form data: $data")
-        return data
-    }
-
-    // Extracts the dynamic part, e.g., "/http/webvpn<session_part>/"
-     private fun extractWebvpnPrefix(url: String): String? {
-        // Regex to capture the base URL and the webvpn prefix part
-        val regex = Regex("(https?://[^/]+)(/http/webvpn[a-fA-F0-9]+)/.*")
-        val match = regex.find(url)
-        // Group 2 should contain the desired prefix, e.g., /http/webvpn...
-        return match?.groups?.get(2)?.value?.let { 
-             if (it.endsWith("/")) it else "$it/" // Ensure it ends with a slash
-        }
-    }
-
-    // Builds the full WebVPN URL
-    private fun buildWebvpnUrl(prefix: String, apiPath: String): String {
-         // Base URL is already part of the prefix extracted
-        val baseUrl = "https://webvpn.ahpu.edu.cn"
-        // Ensure prefix starts correctly and apiPath starts with /
-        val cleanPrefix = if (prefix.startsWith("/")) prefix else "/$prefix"
-        val cleanApiPath = if (apiPath.startsWith("/")) apiPath else "/$apiPath"
-        
-        // Combine, ensuring no double slashes between prefix and apiPath
-        val combinedPath = (cleanPrefix.removeSuffix("/") + cleanApiPath).replace("//", "/")
-        
-        return baseUrl + combinedPath
     }
 
     // --- Data Mapping Functions (API to UI Model) ---
@@ -416,8 +319,9 @@ class CampusCardRepository {
     }
 
     private fun mapApiTransactionToUi(apiTx: ApiTransaction?): CampusCardTransaction? {
-        // Use correct field names from ApiTransaction
+        // Check for required fields
         if (apiTx?.id == null || apiTx.time == null || apiTx.amount == null || apiTx.balance == null) {
+            Log.w(TAG, "Skipping transaction with missing required fields: id=${apiTx?.id}, time=${apiTx?.time}, amount=${apiTx?.amount}, balance=${apiTx?.balance}")
             return null // Skip invalid transactions
         }
         
@@ -427,12 +331,19 @@ class CampusCardRepository {
         val formattedTime = try {
             inputFormat.parse(apiTx.time)?.let { outputFormat.format(it) } ?: apiTx.time
         } catch (e: Exception) {
+            Log.w(TAG, "Failed to parse time format: ${apiTx.time}, using original", e)
             apiTx.time // Fallback to original time if parsing fails
         }
 
-        val location = apiTx.location ?: "未知地点"
-        val terminal = apiTx.terminal ?: ""
-        val description = if (terminal.isNotEmpty()) "$location ($terminal)" else location
+        val location = apiTx.location?.trim() ?: "未知地点"
+        
+        // Use TRANNAME as description or combine with location
+        val tranName = apiTx.tranName?.trim() ?: ""
+        val description = if (tranName.isNotEmpty()) {
+            "$location ($tranName)"
+        } else {
+            location
+        }
         
         // Determine transaction type (simple example)
         val type = when {
@@ -440,12 +351,16 @@ class CampusCardRepository {
             location.contains("餐厅") || location.contains("食堂") -> "餐饮"
             location.contains("超市") -> "购物"
             location.contains("水") || location.contains("浴") || location.contains("电") -> "生活缴费"
-            // Add more rules based on location or typeCode (apiTx.typeCode)
+            tranName.contains("支付") -> "支付"
+            // Add more rules based on location or tranName or tranCode
             else -> "其他支出"
         }
 
+        // Convert the id to String since CampusCardTransaction expects String id
+        val idString = apiTx.id.toString()
+
         return CampusCardTransaction(
-            id = apiTx.id,
+            id = idString,
             time = formattedTime,
             amount = apiTx.amount,
             balance = apiTx.balance,

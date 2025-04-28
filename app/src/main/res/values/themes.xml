@@ -41,4 +41,10 @@
         <item name="cardElevation">0dp</item>
         <item name="strokeWidth">0dp</item>
     </style>
+    
+    <!-- New Rounded Dialog Style -->
+    <style name="RoundedAlertDialog" parent="Theme.Material3.DayNight.Dialog.Alert"> <!-- Or your app's base dialog theme -->
+       <item name="android:windowBackground">@drawable/dialog_rounded_background</item>
+       <!-- You might need to style buttons separately if they don't inherit the roundness -->
+   </style>
 </resources>

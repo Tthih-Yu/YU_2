@@ -985,6 +985,19 @@ class ElectricityRepository(private val context: Context) {
         Log.d("ElectricityRepo", "定时刷新功能已${if (enabled) "启用" else "禁用"}")
     }
     
+    // 获取所有电费历史数据
+    suspend fun getAllHistoryData(): List<ElectricityHistoryData> {
+        return withContext(Dispatchers.IO) {
+            try {
+                val historyDao = ElectricityDatabase.getDatabase(context).electricityHistoryDao()
+                return@withContext historyDao.getAllHistory(getCurrentBuilding(), getRoomId())
+            } catch (e: Exception) {
+                Log.e("ElectricityRepo", "获取所有历史数据失败: ${e.message}", e)
+                return@withContext emptyList()
+            }
+        }
+    }
+    
     companion object {
         private const val PREF_NAME = "electricity_preferences"
         private const val PREF_JSESSION_ID = "jsession_id"
@@ -1020,6 +1033,7 @@ class ElectricityRepository(private val context: Context) {
             "男16#楼" to "52",
             "男15#楼" to "50",
             "男14#楼" to "49",
+            "男13#楼" to "46",
             "男12#楼" to "44",
             "男11#楼" to "42",
             "男06#楼" to "21",

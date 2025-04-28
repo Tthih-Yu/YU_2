@@ -1,9 +1,13 @@
 package com.tthih.yu.campuscard
 
+import com.tthih.yu.campuscard.TransactionResponse
 import okhttp3.RequestBody
 import okhttp3.ResponseBody
 import retrofit2.Response
 import retrofit2.http.* // Import necessary annotations
+import retrofit2.http.Field
+import retrofit2.http.FormUrlEncoded
+import retrofit2.http.POST
 
 interface CampusCardApiService {
     // 1. Initial CAS Login Page Request (to get execution token, etc.)
@@ -49,6 +53,16 @@ interface CampusCardApiService {
         @Url url: String,
         @QueryMap params: Map<String, String> // year, month, pageNumber, pageSize
     ): Response<TransactionDetailResponse> // Defined in CampusCardDataModels.kt
+
+    @FormUrlEncoded
+    @POST("/Report/GetPersonTrjn") // Endpoint from Python script
+    suspend fun getTransactions(
+        @Field("account") account: String, // User account number
+        @Field("page") page: Int,          // Page number to fetch
+        @Field("json") json: String = "true", // Seems required by API
+        // Include sourcetype if needed, potentially from hallticket cookie
+        @Field("sourcetype") sourceType: String? = null // Not required, but may need in some cases
+    ): Response<TransactionResponse> // Using the existing TransactionResponse class
     
     // Add other necessary API calls here...
 }

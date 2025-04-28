@@ -17,6 +17,29 @@ object VersionHistory {
     // 应用的版本历史记录，最新版本放在最前面
     val history = listOf(
         VersionHistoryItem(
+            versionName = "1.1.6",
+            versionCode = 4,
+            releaseDate = "2025-04-27",
+            changes = listOf(
+                "图表分析：为星期分布、时段分布、消费区间、图表添加滚动功能。",
+                "图表分析：优化：余额趋势 和 每日消费 图表的X轴标签，显示实际日期并提高可读性。",
+                "图表分析：移除了图表选择区域多余的文字标签。",
+                "登录流程：完善登陆步骤。",
+                "修复：解决了图表X轴标签在部分情况下显示不全或截断的问题。"
+            )
+        ),
+        VersionHistoryItem(
+            versionName = "1.1.5",
+            versionCode = 3,
+            releaseDate = "2025-04-26",
+            changes = listOf(
+                "优化了课程表功能，优化了导入逻辑",
+                "新增了电费数据导入/出功能，支持从json文件导入数据",
+                "大幅度优化APP安装包体量",
+                "强烈建议使用新版本"
+            )
+        ),
+        VersionHistoryItem(
             versionName = "1.1.0",
             versionCode = 2,
             releaseDate = "2025-4-22",

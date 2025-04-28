@@ -23,6 +23,8 @@ import androidx.work.ExistingPeriodicWorkPolicy
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import java.util.concurrent.TimeUnit
+import com.google.android.material.floatingactionbutton.FloatingActionButton
+import android.content.DialogInterface
 
 class SettingsActivity : AppCompatActivity() {
     
@@ -38,11 +40,11 @@ class SettingsActivity : AppCompatActivity() {
     private lateinit var seekBarLowBalanceThreshold: SeekBar
     private lateinit var tvLowBalanceThreshold: TextView
     private lateinit var btnClearHistory: Button
-    private lateinit var btnSaveSettings: Button
     private lateinit var btnBack: ImageButton
-    private lateinit var btnAddWidget: MaterialButton
+    private lateinit var btnAddWidget: Button
     private lateinit var switchScheduledRefresh: SwitchCompat
     private lateinit var tvScheduledRefreshDesc: TextView
+    private lateinit var fabSaveSettings: FloatingActionButton
     
     // 当前选中的宿舍楼
     private var currentBuilding = ""
@@ -52,6 +54,7 @@ class SettingsActivity : AppCompatActivity() {
         "男生宿舍" to listOf(
             "男25#楼", "男22#楼", "男21#楼", "男20#楼", "男19#楼", 
             "男18#楼", "男17#楼", "男16#楼", "男15#楼", "男14#楼", 
+            "男13#楼",
             "男12#楼", "男11#楼", "男06#楼", "男05#楼"
         ),
         "女生宿舍" to listOf(
@@ -93,11 +96,11 @@ class SettingsActivity : AppCompatActivity() {
         seekBarLowBalanceThreshold = findViewById(R.id.seek_bar_low_balance_threshold)
         tvLowBalanceThreshold = findViewById(R.id.tv_low_balance_threshold)
         btnClearHistory = findViewById(R.id.btn_clear_history)
-        btnSaveSettings = findViewById(R.id.btn_save_settings)
         btnBack = findViewById(R.id.btn_back)
         btnAddWidget = findViewById(R.id.btn_add_widget)
         switchScheduledRefresh = findViewById(R.id.switch_scheduled_refresh)
         tvScheduledRefreshDesc = findViewById(R.id.tv_scheduled_refresh_desc)
+        fabSaveSettings = findViewById(R.id.fab_save_settings)
         
         // 设置返回按钮
         btnBack.setOnClickListener {
@@ -143,12 +146,12 @@ class SettingsActivity : AppCompatActivity() {
         
         // 清除历史数据按钮点击事件
         btnClearHistory.setOnClickListener {
-            viewModel.clearHistoryData()
-            Toast.makeText(this, "历史数据已清除", Toast.LENGTH_SHORT).show()
+            // 显示确认对话框，而不是直接清除
+            showClearHistoryConfirmationDialog()
         }
         
-        // 保存设置按钮点击事件
-        btnSaveSettings.setOnClickListener {
+        // 为新的悬浮按钮设置点击事件
+        fabSaveSettings.setOnClickListener {
             saveSettings()
         }
         
@@ -251,6 +254,32 @@ class SettingsActivity : AppCompatActivity() {
         
         Toast.makeText(this, "设置已保存", Toast.LENGTH_SHORT).show()
         finish()
+    }
+    
+    /**
+     * 显示清除历史数据确认对话框
+     */
+    private fun showClearHistoryConfirmationDialog() {
+        // Show the dialog and then get the buttons to set colors manually
+        val dialog = AlertDialog.Builder(this, R.style.CustomAlertDialog) // 使用自定义样式
+            .setTitle("确认清除历史数据？")
+            .setMessage("清除操作不可逆，建议在清除前导出json数据备份。\n\n确定要清除所有历史记录吗？")
+            .setIcon(R.drawable.ic_warning) // 添加警告图标
+            .setPositiveButton("确定清除") { d: DialogInterface, w: Int ->
+                // 用户确认清除
+                viewModel.clearHistoryData()
+                Toast.makeText(this, "历史数据已清除", Toast.LENGTH_SHORT).show()
+                d.dismiss()
+            }
+            .setNegativeButton("取消") { d: DialogInterface, w: Int ->
+                // 用户取消
+                d.dismiss()
+            }
+            .show() // Show the dialog
+
+        // Manually set button text colors after showing the dialog
+        dialog.getButton(AlertDialog.BUTTON_POSITIVE)?.setTextColor(getColor(R.color.matcha_primary))
+        dialog.getButton(AlertDialog.BUTTON_NEGATIVE)?.setTextColor(getColor(R.color.matcha_text_secondary))
     }
     
     /**

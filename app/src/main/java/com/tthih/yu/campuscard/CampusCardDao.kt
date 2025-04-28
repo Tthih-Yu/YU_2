@@ -15,4 +15,7 @@ interface CampusCardDao {
     
     @Query("DELETE FROM campus_card_transactions")
     suspend fun deleteAllTransactions()
+    
+    @Query("DELETE FROM campus_card_transactions")
+    suspend fun clearAll()
 } 

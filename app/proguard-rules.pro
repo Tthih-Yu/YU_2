@@ -5,6 +5,7 @@
 # For more details, see
 #   http://developer.android.com/guide/developing/tools/proguard.html
 
+
 # 保留源文件名和行号，方便调试
 -keepattributes SourceFile,LineNumberTable
 -renamesourcefileattribute SourceFile
@@ -70,8 +71,11 @@
 # 保留Entity类
 -keep class com.tthih.yu.electricity.ElectricityData { *; }
 -keep class com.tthih.yu.electricity.ElectricityHistoryData { *; }
+# 强制保留 schedule 包下的所有内容，防止混淆和缩减
 -keep class com.tthih.yu.schedule.** { *; }
--keep class com.tthih.yu.campuscard.** { *; }
+# 再次明确保留 ScheduleImportActivity 及其所有成员
+-keep class com.tthih.yu.schedule.ScheduleImportActivity { *; }
+# -keep class com.tthih.yu.campuscard.** { *; } # Removed generic rule, replaced below
 -keep class com.tthih.yu.todo.Todo { *; }
 -keep class com.tthih.yu.todo.Priority { *; }
 
@@ -90,10 +94,17 @@
     public boolean *(android.webkit.WebView, java.lang.String);
     public void *(android.webkit.WebView, java.lang.String);
 }
--keepclassmembers class fqcn.of.javascript.interface.for.webview {
-   public *;
-}
+# 保留带有 @JavascriptInterface 注解的方法及其参数类型
 -keepattributes JavascriptInterface
+-keepclassmembers class com.tthih.yu.schedule.ScheduleImportActivity { 
+   @android.webkit.JavascriptInterface <methods>; 
+}
+# 确保 JavascriptInterface 方法本身及其所在类不被移除或混淆
+-keep public class com.tthih.yu.schedule.ScheduleImportActivity
+-keep public @android.webkit.JavascriptInterface class *
+-keepclassmembers @android.webkit.JavascriptInterface class * {
+    <methods>;
+}
 
 # GSON相关
 -keepattributes Signature
@@ -121,15 +132,16 @@
 }
 
 # 禁止混淆安卓官方库和androidx
--keep class android.** { *; }
--keep class androidx.** { *; }
--keep class com.google.android.material.** { *; }
--dontwarn androidx.**
--dontwarn com.google.android.material.**
+#-keep class android.** { *; }
+#-keep class androidx.** { *; }
+#-keep class com.google.android.material.** { *; }
+#-dontwarn androidx.**
+#-dontwarn com.google.android.material.**
 
 # 不混淆Compose相关内容
--keep class androidx.compose.** { *; }
--dontwarn androidx.compose.**
+-keep class androidx.compose.animation.core.** { *; }
+-keep class androidx.compose.ui.graphics.** { *; }
+#-dontwarn androidx.compose.**
 
 # WorkManager
 -keep class androidx.work.** { *; }
@@ -146,3 +158,90 @@
 -dontwarn org.openjsse.javax.net.ssl.SSLParameters
 -dontwarn org.openjsse.javax.net.ssl.SSLSocket
 -dontwarn org.openjsse.net.ssl.OpenJSSE
+
+# --- Campus Card Feature Rules ---
+
+# Keep all public classes, interfaces, and their members within the campuscard package
+-keep public class com.tthih.yu.campuscard.** { *; }
+-keep public interface com.tthih.yu.campuscard.** { *; }
+
+# Explicitly keep important public classes and interfaces (redundant but safe)
+-keep public class com.tthih.yu.campuscard.CampusCardRepository { *; }
+-keep public class com.tthih.yu.campuscard.CampusCardViewModel { *; }
+-keep public class com.tthih.yu.campuscard.NetworkModule { *; }
+-keep public class com.tthih.yu.campuscard.PersistentCookieJar { *; }
+-keep public interface com.tthih.yu.campuscard.CampusCardApiService { *; }
+# Add Activities/Fragments if they exist and aren't covered by general rules
+-keep public class com.tthih.yu.campuscard.CampusCardActivity { *; }
+-keep public class com.tthih.yu.campuscard.CampusCardLoginActivity { *; }
+
+# Keep all data model classes used by Retrofit/Gson/Room and their members (fields)
+# Ensure all fields are kept for JSON/database mapping.
+-keep public class com.tthih.yu.campuscard.ApiTransaction { *; }
+-keep public class com.tthih.yu.campuscard.TransactionResponse { *; }
+-keep public class com.tthih.yu.campuscard.CardInfo { *; }
+-keep public class com.tthih.yu.campuscard.CardInfoData { *; }
+-keep public class com.tthih.yu.campuscard.MonthBill { *; }
+-keep public class com.tthih.yu.campuscard.MonthBillData { *; }
+-keep public class com.tthih.yu.campuscard.ConsumeTrend { *; }
+-keep public class com.tthih.yu.campuscard.ConsumeTrendData { *; }
+-keep public class com.tthih.yu.campuscard.CampusCardTransaction { *; } # Room Entity
+
+# Keep the SerializableOkHttpCookie class and its fields (Verified existing rule structure)
+-keep class com.tthih.yu.campuscard.PersistentCookieJar$SerializableOkHttpCookie { *; }
+-keepclassmembers class com.tthih.yu.campuscard.PersistentCookieJar$SerializableOkHttpCookie {
+    private static final long serialVersionUID;
+    # Keep all fields explicitly by name
+    private java.lang.String name;
+    private java.lang.String value;
+    private long expiresAt;
+    private java.lang.String domain;
+    private java.lang.String path;
+    private boolean secure;
+    private boolean httpOnly;
+    private boolean hostOnly;
+    # Keep serialization methods
+    private void writeObject(java.io.ObjectOutputStream);
+    private void readObject(java.io.ObjectInputStream);
+}
+
+# --- Keep OkHttp & Retrofit (Add broader rules for safety) ---
+-keep class okhttp3.** { *; }
+-keep interface okhttp3.** { *; }
+-dontwarn okhttp3.**
+-keep class retrofit2.** { *; }
+-keep interface retrofit2.** { *; }
+-dontwarn retrofit2.**
+# Keep OkHttp's Cookie class
+-keep public class okhttp3.Cookie { *; }
+
+# Keep the SerializableOkHttpCookie class and its fields for Cookie persistence  # Removed duplicate section start
+# -keep class com.tthih.yu.campuscard.PersistentCookieJar$SerializableOkHttpCookie { *; } # Removed duplicate
+# -keepclassmembers class com.tthih.yu.campuscard.PersistentCookieJar$SerializableOkHttpCookie { # Removed duplicate
+#     private static final long serialVersionUID; # Removed duplicate
+#     private java.lang.String name; # Removed duplicate
+#     private java.lang.String value; # Removed duplicate
+#     private long expiresAt; # Removed duplicate
+#     private java.lang.String domain; # Removed duplicate
+#     private java.lang.String path; # Removed duplicate
+#     private boolean secure; # Removed duplicate
+#     private boolean httpOnly; # Removed duplicate
+#     private boolean hostOnly; # Removed duplicate
+#     private void writeObject(java.io.ObjectOutputStream); # Removed duplicate
+#     private void readObject(java.io.ObjectInputStream); # Removed duplicate
+# } # Removed duplicate
+# Keep companion object if it exists and has members (though unlikely needed for serialization itself) # Removed duplicate
+# -keep class com.tthih.yu.campuscard.PersistentCookieJar$SerializableOkHttpCookie$Companion { *; } # Removed duplicate
+
+# Keep fields used by the serialization process within the class # Removed duplicate section start
+# Already covered by the keepclassmembers rule above, but sometimes explicit field keep can help debugging. # Removed duplicate
+# -keepclassmembers class com.tthih.yu.campuscard.PersistentCookieJar$SerializableOkHttpCookie { # Removed duplicate
+#     private java.lang.String name; # Removed duplicate
+#     private java.lang.String value; # Removed duplicate
+#     private long expiresAt; # Removed duplicate
+#     private java.lang.String domain; # Removed duplicate
+#     private java.lang.String path; # Removed duplicate
+#     private boolean secure; # Removed duplicate
+#     private boolean httpOnly; # Removed duplicate
+#     private boolean hostOnly; # Removed duplicate
+# } # Removed duplicate

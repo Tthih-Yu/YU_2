@@ -110,15 +110,42 @@ data class TransactionListData(
 
 // Raw transaction data from API (e.g., inside 'rows')
 data class ApiTransaction(
-    @SerializedName("JYLSH") val id: String?, // Transaction ID
-    @SerializedName("JYSJ") val time: String?, // Transaction time (e.g., "2025-04-13 17:30:00")
-    @SerializedName("JYJE") val amount: Double?, // Transaction amount
-    @SerializedName("YE") val balance: Double?, // Balance after transaction
-    @SerializedName("SHMC") val location: String?, // Merchant name
-    @SerializedName("ZDMC") val terminal: String?, // Terminal name
-    @SerializedName("JYKM") val typeCode: String? // Transaction type code/name
-    // Add other fields if available from the API
+    @SerializedName("RO") val rowNumber: Int?,        // Row number
+    @SerializedName("OCCTIME") val time: String?,     // Occurrence time (matches existing 'time' field)
+    @SerializedName("EFFECTDATE") val effectDate: String?, // Effect date
+    @SerializedName("MERCNAME") val location: String?, // Merchant name (matches existing 'location' field)
+    @SerializedName("TRANAMT") val amount: Double?,   // Transaction amount (matches existing 'amount' field)
+    @SerializedName("TRANNAME") val tranName: String?, // Transaction name
+    @SerializedName("TRANCODE") val tranCode: String?, // Transaction code
+    @SerializedName("CARDBAL") val balance: Double?,  // Card balance (matches existing 'balance' field)
+    @SerializedName("JDESC") val description: String?, // Description
+    @SerializedName("JNUM") val id: Long?,            // Transaction ID (might be used as unique ID)
+    @SerializedName("MACCOUNT") val merchantAccount: String?, // Merchant account - Changed from Long? to String? to handle empty strings
+    @SerializedName("F1") val f1: String?,            // Field 1
+    @SerializedName("F2") val f2: String?,            // Field 2
+    @SerializedName("F3") val f3: String?,            // Field 3
+    @SerializedName("SYSCODE") val sysCode: Int?,     // System code
+    @SerializedName("POSCODE") val posCode: Int?,     // POS code
+    @SerializedName("CMONEY") val cMoney: Double?,    // Some money value
+    @SerializedName("ZMONEY") val zMoney: Double?,    // Another money value
+    @SerializedName("ACCTYPENAME") val accountTypeName: String? // Account type name
 )
 
 // Helper extension for formatting
-fun Double?.format(digits: Int): String = String.format("%.${digits}f", this ?: 0.0) 
+fun Double?.format(digits: Int): String = String.format("%.${digits}f", this ?: 0.0)
+
+// Data class for the overall response of /Report/GetPersonTrjn
+data class TransactionResponse(
+    // Match the actual JSON structure
+    val issucceed: Boolean?,
+    val name: String?,
+    val total: Int?,          // Total records count
+    val tranamt: Double?,     // Some monetary value
+    val tranamt1: Double?,    // Another monetary value
+    val tranamt2: Double?,    // Another monetary value
+    val parm1: String?,       // Parameter 1
+    val parm2: String?,       // Parameter 2
+    val trannum: Int?,        // Transaction number
+    val rows: List<ApiTransaction>?, // The actual transaction list
+    val footer: Any?          // Footer information (could be null or complex object)
+) 

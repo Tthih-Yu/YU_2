@@ -7,6 +7,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.GlobalScope
 import kotlinx.coroutines.launch
 import android.util.Log
+import com.tthih.yu.campuscard.NetworkModule
 
 class ElectricityApplication : Application(), Configuration.Provider {
     
@@ -21,6 +22,10 @@ class ElectricityApplication : Application(), Configuration.Provider {
     
     override fun onCreate() {
         super.onCreate()
+        
+        // Initialize NetworkModule
+        NetworkModule.initialize(this)
+        Log.i("ElectricityApplication", "NetworkModule initialized for Campus Card.")
         
         // Initialize WorkManager (keep on main thread as recommended for basic setup)
         try {

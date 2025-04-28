@@ -11,81 +11,81 @@ import retrofit2.Retrofit
 import retrofit2.converter.gson.GsonConverterFactory
 import java.util.concurrent.TimeUnit
 
-// Base URL for WebVPN
-private const val BASE_URL = "https://webvpn.ahpu.edu.cn/"
+// Base URL - Changed to the direct campus card system address
+private const val BASE_URL = "http://220.178.164.65:8053/"
 
-// In-memory cookie jar for simplicity
-class InMemoryCookieJar : CookieJar {
-    private val cookieStore = mutableMapOf<String, MutableList<Cookie>>()
+object NetworkModule {
+    // REMOVE old public cookieJar
+    // val cookieJar = InMemoryCookieJar() 
 
-    override fun saveFromResponse(url: HttpUrl, cookies: List<Cookie>) {
-        val host = url.host
-        val storedCookies = cookieStore.getOrPut(host) { mutableListOf() }
-        
-        // Add or update cookies
-        cookies.forEach { newCookie ->
-            // Remove existing cookie with the same name
-            storedCookies.removeAll { it.name == newCookie.name }
-            storedCookies.add(newCookie)
+    // ADD PersistentCookieJar instance (private)
+    private lateinit var persistentCookieJar: PersistentCookieJar
+
+    // ADD initialize function
+    fun initialize(context: Context) {
+        if (!::persistentCookieJar.isInitialized) { // Prevent re-initialization
+            persistentCookieJar = PersistentCookieJar(context.applicationContext)
         }
     }
 
-    override fun loadForRequest(url: HttpUrl): List<Cookie> {
-        val host = url.host
-        val storedCookies = cookieStore[host] ?: emptyList<Cookie>()
-        
-        // Filter out expired cookies
-        val currentTime = System.currentTimeMillis()
-        return storedCookies.filter { it.expiresAt > currentTime }
-    }
-
-    fun clear() {
-        cookieStore.clear()
-    }
-
-    fun getAllCookies(): Map<String, List<Cookie>> {
-        return cookieStore.toMap() // Return a copy
-    }
-}
-
-object NetworkModule {
-    private val cookieJar = InMemoryCookieJar()
-
-    // 在 Release 构建中使用 NONE 级别的日志拦截器
     private val loggingInterceptor = HttpLoggingInterceptor().apply {
-        // 修复 BuildConfig.DEBUG 引用问题，直接使用 NONE 级别
-        level = HttpLoggingInterceptor.Level.NONE
+        level = HttpLoggingInterceptor.Level.BODY
     }
 
-    private val okHttpClient = OkHttpClient.Builder()
-        .cookieJar(cookieJar)
+    private val okHttpClient: OkHttpClient by lazy {
+        if (!::persistentCookieJar.isInitialized) {
+            throw IllegalStateException("NetworkModule must be initialized before using OkHttpClient")
+        }
+        OkHttpClient.Builder()
+            // USE PersistentCookieJar
+            .cookieJar(persistentCookieJar)
         .addInterceptor(loggingInterceptor)
-        .followRedirects(true) // Follow redirects automatically
+            .followRedirects(true)
         .followSslRedirects(true)
         .connectTimeout(30, TimeUnit.SECONDS)
         .readTimeout(30, TimeUnit.SECONDS)
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
-
-    private val retrofit = Retrofit.Builder()
-        .baseUrl(BASE_URL)
-        .client(okHttpClient)
-        .addConverterFactory(GsonConverterFactory.create()) // Use Gson, ensure Gson dependency is added
-        .build()
-
-    val apiService: CampusCardApiService = retrofit.create(CampusCardApiService::class.java)
-
-    fun clearCookies() {
-        cookieJar.clear()
     }
 
-    // Function to manually get cookies if needed
+    private val retrofit: Retrofit by lazy {
+        Retrofit.Builder()
+        .baseUrl(BASE_URL)
+        .client(okHttpClient)
+            .addConverterFactory(GsonConverterFactory.create())
+        .build()
+    }
+
+    val apiService: CampusCardApiService by lazy {
+        retrofit.create(CampusCardApiService::class.java)
+    }
+
+    fun clearCookies() {
+        if (::persistentCookieJar.isInitialized) {
+            persistentCookieJar.clear() // Clear persistent cookies
+        } else {
+            // Log or handle the case where clear is called before init? 
+            // For now, it just won't do anything if not initialized.
+        }
+    }
+
+    // Function to manually get cookies if needed (Now uses persistent jar)
     fun getCookiesForUrl(url: String): List<Cookie> {
+        if (!::persistentCookieJar.isInitialized) return emptyList()
         val httpUrl = url.toHttpUrlOrNull()
         return if (httpUrl != null) {
-            cookieJar.loadForRequest(httpUrl)
+            persistentCookieJar.loadForRequest(httpUrl)
         } else {
             emptyList()
+        }
+    }
+    
+    // Added helper to allow saving cookies from WebView (like in LoginActivity)
+    fun saveCookiesFromResponse(url: String, cookies: List<Cookie>) {
+         if (!::persistentCookieJar.isInitialized) return
+         val httpUrl = url.toHttpUrlOrNull()
+         if (httpUrl != null) {
+             persistentCookieJar.saveFromResponse(httpUrl, cookies)
         }
     }
 } 

@@ -42,6 +42,10 @@ class ScheduleImportActivity : AppCompatActivity() {
     // WebView容器，用于需要重建WebView时
     private lateinit var webViewContainer: ViewGroup
 
+    companion object {
+        private const val TAG = "ScheduleImportDebug" // Define a TAG for logging
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_schedule_import)
@@ -731,7 +735,7 @@ class ScheduleImportActivity : AppCompatActivity() {
         webView.addJavascriptInterface(this, "Android")
         
         // 设置WebView调试
-        WebView.setWebContentsDebuggingEnabled(false) // 在 Release 版本中禁用 WebView 调试
+        WebView.setWebContentsDebuggingEnabled(true) // 在 Release 版本中禁用 WebView 调试
         
         // 配置WebViewClient
         webView.webViewClient = object : WebViewClient() {
@@ -870,57 +874,98 @@ class ScheduleImportActivity : AppCompatActivity() {
     
     // 解析课表数据
     private fun parseScheduleData(jsonData: String): List<ScheduleData> {
+        Log.d(TAG, "Received JSON data: $jsonData") // Log raw JSON
         val schedules = mutableListOf<ScheduleData>()
-        
+
         try {
             val jsonArray = JSONArray(jsonData)
+            Log.d(TAG, "Parsed JSON Array length: ${jsonArray.length()}")
             for (i in 0 until jsonArray.length()) {
                 val jsonObject = jsonArray.getJSONObject(i)
-                
-                // 解析课程数据
+                Log.d(TAG, "Processing item $i: ${jsonObject.toString()}")
+
+                // 解析通用课程信息
                 val name = jsonObject.getString("name")
                 val position = jsonObject.optString("position", "")
                 val teacher = jsonObject.optString("teacher", "")
                 val day = jsonObject.getInt("day")
-                
+                Log.d(TAG, "  -> Name: $name, Position: $position, Teacher: $teacher, Day: $day")
+
                 // 解析上课节次
                 val sectionsArray = jsonObject.getJSONArray("sections")
                 val sections = mutableListOf<Int>()
                 for (j in 0 until sectionsArray.length()) {
                     sections.add(sectionsArray.getInt(j))
                 }
-                
                 val startNode = sections.minOrNull() ?: 1
                 val endNode = sections.maxOrNull() ?: startNode
-                
+                Log.d(TAG, "  -> Sections raw: ${sectionsArray.toString()}, Parsed: $sections, StartNode: $startNode, EndNode: $endNode")
+
                 // 解析周次
                 val weeksArray = jsonObject.getJSONArray("weeks")
                 val weeks = mutableListOf<Int>()
                 for (j in 0 until weeksArray.length()) {
                     weeks.add(weeksArray.getInt(j))
                 }
-                
-                val startWeek = weeks.minOrNull() ?: 1
-                val endWeek = weeks.maxOrNull() ?: startWeek
-                
-                // 创建课程数据对象
-                val schedule = ScheduleData(
-                    name = name,
-                    classroom = position,
-                    teacher = teacher,
-                    weekDay = day,
-                    startNode = startNode,
-                    endNode = endNode,
-                    startWeek = startWeek,
-                    endWeek = endWeek
-                )
-                
-                schedules.add(schedule)
+                Log.d(TAG, "  -> Weeks raw: ${weeksArray.toString()}, Parsed: $weeks")
+
+                // 处理周次，为每个连续段创建 ScheduleData
+                if (weeks.isNotEmpty()) {
+                    weeks.sort() // 确保周次是排序的
+                    Log.d(TAG, "  -> Sorted Weeks: $weeks")
+                    var startWeek = weeks[0]
+                    var endWeek = weeks[0]
+                    Log.d(TAG, "  -> Initial Week Segment: start=$startWeek, end=$endWeek")
+
+                    for (k in 1 until weeks.size) {
+                        Log.d(TAG, "  -> Checking week ${weeks[k]} against endWeek $endWeek")
+                        if (weeks[k] == endWeek + 1) {
+                            // 周次是连续的，扩展当前段
+                            endWeek = weeks[k]
+                            Log.d(TAG, "    --> Continuous, updated endWeek to $endWeek")
+                        } else {
+                            // 周次不连续，保存上一个段，开始新段
+                            Log.d(TAG, "    --> Discontinuous. Saving segment: start=$startWeek, end=$endWeek")
+                            val schedule = ScheduleData(
+                                name = name,
+                                classroom = position,
+                                teacher = teacher,
+                                weekDay = day,
+                                startNode = startNode,
+                                endNode = endNode,
+                                startWeek = startWeek,
+                                endWeek = endWeek
+                            )
+                            schedules.add(schedule)
+                            Log.d(TAG, "      ----> Added ScheduleData: $schedule")
+                            startWeek = weeks[k]
+                            endWeek = weeks[k]
+                            Log.d(TAG, "    --> Started new segment: start=$startWeek, end=$endWeek")
+                        }
+                    }
+                    // 保存最后一个段
+                    Log.d(TAG, "  -> Saving final segment: start=$startWeek, end=$endWeek")
+                    val lastSchedule = ScheduleData(
+                        name = name,
+                        classroom = position,
+                        teacher = teacher,
+                        weekDay = day,
+                        startNode = startNode,
+                        endNode = endNode,
+                        startWeek = startWeek,
+                        endWeek = endWeek
+                    )
+                    schedules.add(lastSchedule)
+                    Log.d(TAG, "    ----> Added final ScheduleData: $lastSchedule")
+                } else {
+                    Log.w(TAG, "课程 '$name' 的周次信息为空，跳过")
+                }
             }
         } catch (e: Exception) {
+            Log.e(TAG, "解析课表数据时出错", e) // 使用TAG记录错误
             throw Exception("解析课表数据失败: ${e.message}")
         }
-        
+        Log.d(TAG, "Finished parsing. Total schedules created: ${schedules.size}")
         return schedules
     }
     
@@ -958,7 +1003,7 @@ class ScheduleImportActivity : AppCompatActivity() {
                                 setResult(RESULT_OK, intent)
                                 finish()
                             }
-                        }, 3000)
+                        }, 500)
                     }
                 } catch (e: Exception) {
                     Log.e("ImportActivity", "保存课表数据失败", e)

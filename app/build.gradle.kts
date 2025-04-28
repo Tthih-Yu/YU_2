@@ -13,16 +13,16 @@ android {
         applicationId = "com.tthih.yu"
         minSdk = 31
         targetSdk = 35
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 4
+        versionName = "1.1.6"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
     buildTypes {
         release {
-            isMinifyEnabled = false
-            isShrinkResources = false
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -112,6 +112,10 @@ dependencies {
     implementation("com.squareup.okhttp3:logging-interceptor:4.10.0") // For debugging
     implementation("org.jsoup:jsoup:1.15.3") // For parsing HTML (CAS login form)
 
+    // Vico Chart Library (Compose)
+    implementation("com.patrykandpatrick.vico:compose:1.15.0")
+    implementation("com.patrykandpatrick.vico:compose-m3:1.15.0") // For Material 3 styles
+    implementation("com.patrykandpatrick.vico:core:1.15.0")
     // Hilt for Dependency Injection (Optional but recommended)
     // implementation("com.google.dagger:hilt-android:2.48") // Check latest version
     // kapt("com.google.dagger:hilt-compiler:2.48")

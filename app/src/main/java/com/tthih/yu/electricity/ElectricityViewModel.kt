@@ -168,29 +168,47 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
         return 0f
     }
     
-    // 完善电费数据更新和存储逻辑
-    fun updateElectricityData(result: ElectricityData): Boolean {
-        try {
-            // 设置当前电费数据
-            _electricityData.value = result
+    // 完善电费数据更新和存储逻辑 (修改为 suspend 函数)
+    private suspend fun updateElectricityData(result: ElectricityData): Boolean {
+        return try {
+            // 设置当前电费数据 (需要在主线程更新LiveData)
+            withContext(Dispatchers.Main) {
+                _electricityData.value = result
+            }
             
-            // 保存电费数据到Repository
-            viewModelScope.launch {
-            repository.saveElectricityData(result)
-            
-                // 检测电量变化并记录历史
-                val changed = repository.checkAndRecordElectricityChange(result)
+            // 先检查变化，再保存新数据
+            val changed = withContext(Dispatchers.IO) { 
+                // 1. 获取旧的记录用于比较
+                val previousRecord = repository.getLastElectricityData()
+
+                // 2. 检查是否有变化
+                val hasChanged = previousRecord == null || previousRecord.balance != result.balance
+
+                // 3. 如果有变化，添加历史记录 (addElectricityHistory 内部会再次获取 previousRecord，但此时数据还没被覆盖)
+                if (hasChanged) {
+                    repository.addElectricityHistory(result) // 使用新数据添加历史
+                }
+
+                // 4. 保存最新的数据到 current data table
+                repository.saveElectricityData(result)
                 
-                if (changed) {
+                // 记录日志
+                if (hasChanged) {
                     Log.d("ElectricityViewModel", "电费数据有变化，已更新历史记录")
                 } else {
                     Log.d("ElectricityViewModel", "电费数据无变化")
                 }
-                
-                // 刷新月度历史数据
+                hasChanged // 返回变化状态
+            }
+            
+            // 刷新月度历史数据 (如果发生了变化)
+            // refreshMonthHistoryData() 会更新 LiveData，确保在主线程或其内部处理好线程切换
+            if (changed) {
                 refreshMonthHistoryData()
-                
-                // 记录电量使用趋势分析
+            }
+
+            // 记录电量使用趋势分析 (这部分逻辑可以保持异步，因为它不影响核心数据流)
+             viewModelScope.launch(Dispatchers.IO) { // 保持这个分析的异步性
                 try {
                     val currentMonth = getCurrentMonth()
                     val thisMonthData = repository.getMonthHistory(getCurrentYear(), currentMonth)
@@ -208,10 +226,14 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
                 }
             }
             
-            return true
+            true // 表示更新流程成功
         } catch (e: Exception) {
             Log.e("ElectricityViewModel", "更新电费数据异常: ${e.message}", e)
-            return false
+            // 更新 LiveData 需要在主线程
+             withContext(Dispatchers.Main) {
+                 _errorMessage.value = "更新电费数据异常: ${e.message}"
+            }
+            false // 表示更新流程失败
         }
     }
 
@@ -232,9 +254,11 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
                 }
                 
                 if (result != null) {
+                    // 直接调用 suspend 函数
                     val success = updateElectricityData(result)
                     if (!success) {
-                        _errorMessage.value = "更新电费数据失败"
+                        // _errorMessage 会在 updateElectricityData 内部设置
+                        // _errorMessage.value = "更新电费数据失败" 
                     }
                 } else {
                     _errorMessage.value = "获取数据失败"
@@ -267,8 +291,10 @@ class ElectricityViewModel(application: Application) : AndroidViewModel(applicat
                 }
                 
                 if (result != null) {
-                    val success = updateElectricityData(result)
-                    callback?.invoke(success)
+                    // 调用 suspend 函数并等待其完成
+                    val success = updateElectricityData(result) 
+                    // 在 suspend 函数完成后调用回调
+                    callback?.invoke(success) 
                 } else {
                     _errorMessage.value = "获取数据失败"
                     callback?.invoke(false)

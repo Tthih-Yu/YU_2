@@ -29,6 +29,10 @@
     <color name="matcha_danger">#F44336</color>
     <color name="matcha_success">#4CAF50</color>
     
+    <!-- Light versions for ripple effects -->
+    <color name="matcha_primary_light">#4D8BC34A</color> <!-- 30% alpha of matcha_primary -->
+    <color name="matcha_danger_light">#4DF44336</color> <!-- 30% alpha of matcha_danger -->
+    
     <!-- 用电统计颜色 -->
     <color name="danger_red">#F44336</color>
     <color name="warning_yellow">#FFC107</color>
